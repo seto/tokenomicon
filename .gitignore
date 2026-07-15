@@ -1,0 +1,20 @@
+# Python related stuff
+__pycache__/
+.venv/
+venv/
+*.py[codz]
+
+# Build and Distribution
+build/
+dist/
+*.egg-info/
+
+# IDEs and OS specifific
+.DS_Store
+.idea/
+.vscode/
+
+# Testing
+.pytest_cache/
+.coverage
+.demo
