@@ -12,7 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-""" """
+"""Exception hierarchy for the Tokenomicon.
+
+All library-specific errors inherit from TokenomiconError, so callers
+can catch it as a single catch-all when they don't need to distinguish
+the specific failure mode.
+"""
 
 
 class TokenomiconError(Exception):

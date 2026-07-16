@@ -12,7 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-""" """
+"""Model pricing registry, loadable from external TOML files.
+
+Config is the single source of truth mapping a model name to its
+PricingPlan. Plans are never bundled or assumed by the library itself:
+callers register them explicitly, either in code via register() or by
+loading a TOML file via load_toml(), so pricing can be updated without
+redeploying the application. A module-level `config` singleton is
+provided for the common case of one registry per process.
+"""
 
 import os
 import re

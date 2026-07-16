@@ -12,7 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-""" """
+"""Pricing plan definition and cost calculation.
+
+PricingPlan holds the per-model rate (input/output cost per million
+tokens, in a given ISO 4217 currency) and computes the cost of a call
+given its token counts. All arithmetic uses Decimal to avoid float
+rounding drift across repeated calculations.
+"""
 
 from dataclasses import dataclass
 from decimal import Decimal
