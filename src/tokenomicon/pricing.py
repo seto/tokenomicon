@@ -17,15 +17,13 @@
 from dataclasses import dataclass
 from decimal import Decimal
 
+from .currencies import ISO_4217_CODES
 from .exceptions import (
     InvalidCurrencyError,
     InvalidPricingError,
     NegativeTokenCountError,
 )
 
-CURRENCY_CODES = frozenset({
-    "EUR", "GBP", "USD"
-})
 
 @dataclass(frozen=True, slots=True)
 class PricingPlan:
@@ -37,7 +35,7 @@ class PricingPlan:
     currency: str = "USD"
 
     def __post_init__(self) -> None:
-        if self.currency not in CURRENCY_CODES:
+        if self.currency not in ISO_4217_CODES:
             raise InvalidCurrencyError(
                 f"'{self.currency}' is not a valid ISO 4217 currency code"
             )

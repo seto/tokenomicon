@@ -28,7 +28,7 @@ class ModelNotConfiguredError(TokenomiconError, KeyError):
 
 
 class InvalidCurrencyError(TokenomiconError, ValueError):
-    """Raised when a currency code is not a valid currency code."""
+    """Raised when a currency code is not a valid ISO 4217 code."""
 
 
 class InvalidPricingError(TokenomiconError, ValueError):
