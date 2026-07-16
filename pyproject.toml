@@ -54,6 +54,11 @@ pythonpath = ["src"]
 [tool.black]
 line-length = 88
 target-version = ["py311", "py312", "py313", "py314"]
+extend-exclude = '''
+(
+    ^/src/tokenomicon/currencies.py
+)
+'''
 
 [tool.isort]
 profile = "black"
