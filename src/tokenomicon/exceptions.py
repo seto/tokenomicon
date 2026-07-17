@@ -42,3 +42,7 @@ class InvalidPricingError(TokenomiconError, ValueError):
 
 class NegativeTokenCountError(TokenomiconError, ValueError):
     """Raised when a token count is negative or inconsistent."""
+
+
+class TokenExtractionWarning(UserWarning):
+    """Emitted when token usage cannot be determined for a call."""
