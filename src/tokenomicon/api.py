@@ -15,7 +15,7 @@
 """Decorator that turns any LLM call into a cost-aware one.
 
 Wraps a function returning a provider response and returns a CallResult
-with the original response plus the calculated cost, leaving the
+with the original response plus the calculated tribute, leaving the
 caller's access to that response untouched.
 """
 
@@ -34,21 +34,21 @@ F = TypeVar("F", bound=Callable[..., Any])
 
 @dataclass(frozen=True, slots=True)
 class CallResult:
-    """Result of a decorated call: original response + calculated cost."""
+    """Result of a decorated call: original response + calculated tribute."""
 
     result: Any
-    cost: Decimal | None
+    tribute: Decimal | None
     input_tokens: int | None
     output_tokens: int | None
     currency: str | None
 
 
-def track_cost(
+def augur(
     model: str,
     *,
     manual_tokens: Callable[[Any], tuple[int, int]] | None = None,
 ) -> Callable[[F], Callable[..., CallResult]]:
-    """Decorator that calculates the cost of an LLM call.
+    """Decorator that calculates the tribute of an LLM call.
 
     Args:
         model: name of the model, must match one registered in Config.
@@ -71,13 +71,13 @@ def track_cost(
                 warnings.warn(
                     f"Not possible to determine token usage for model "
                     f"'{model}': response format not recognized and no "
-                    f"'manual_tokens' provided. Cost not calculated.",
+                    f"'manual_tokens' provided. Tribute not calculated.",
                     category=TokenExtractionWarning,
                     stacklevel=2,
                 )
                 return CallResult(
                     result=result,
-                    cost=None,
+                    tribute=None,
                     input_tokens=None,
                     output_tokens=None,
                     currency=None,
@@ -85,11 +85,11 @@ def track_cost(
 
             input_tokens, output_tokens = usage
             plan = config.get(model)
-            cost = plan.cost(input_tokens, output_tokens)
+            tribute = plan.tribute(input_tokens, output_tokens)
 
             return CallResult(
                 result=result,
-                cost=cost,
+                tribute=tribute,
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
                 currency=plan.currency,

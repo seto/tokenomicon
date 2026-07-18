@@ -15,11 +15,11 @@
 """Tokenomicon: post-hoc financial divination for LLM API calls.
 
 Public API surface. Configure pricing via `config.load_toml(...)`,
-then decorate any LLM call with `track_cost` to get its cost back
+then decorate any LLM call with `augur` to get its tribute back
 alongside the original response.
 """
 
-from .api import CallResult, track_cost
+from .api import CallResult, augur
 from .config import Config, config
 from .exceptions import (
     ConfigError,
@@ -37,7 +37,7 @@ __all__ = [
     "config",
     "PricingPlan",
     "CallResult",
-    "track_cost",
+    "augur",
     "TokenomiconError",
     "ModelNotConfiguredError",
     "NegativeTokenCountError",

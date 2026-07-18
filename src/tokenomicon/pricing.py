@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Pricing plan definition and cost calculation.
+"""Pricing plan definition and tribute calculation.
 
 PricingPlan holds the per-model rate (input/output cost per million
-tokens, in a given ISO 4217 currency) and computes the cost of a call
+tokens, in a given ISO 4217 currency) and computes the tribute of a call
 given its token counts. All arithmetic uses Decimal to avoid float
 rounding drift across repeated calculations.
 """
@@ -51,7 +51,7 @@ class PricingPlan:
                 f"input={self.input_per_million}, output={self.output_per_million}"
             )
 
-    def cost(self, input_tokens: int, output_tokens: int) -> Decimal:
+    def tribute(self, input_tokens: int, output_tokens: int) -> Decimal:
         if input_tokens < 0 or output_tokens < 0:
             raise NegativeTokenCountError(
                 f"Negative token count not allowed: "
