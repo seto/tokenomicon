@@ -10,7 +10,7 @@ def format(ctx, targets="src tests"):
 
 
 @task()
-def test(ctx, extras="--cov=wicli --cov-report=term-missing --color=yes"):
+def test(ctx, extras="--cov=tokenomicon --cov-report=term-missing --color=yes"):
     ctx.run(f"pytest tests {extras}")
 
 
