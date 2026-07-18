@@ -14,7 +14,7 @@
 
 """Automatic token-usage extraction from known LLM provider response shapes.
 
-Provides best-effort parsers for common providers (OpenAI, Anthropic).
+Provides best-effort parsers for common providers (OpenAI, Anthropic, Google).
 If no extractor recognizes a response, extract_usage() returns None and
 the caller is expected to supply token counts manually.
 """
@@ -64,8 +64,22 @@ def _extract_anthropic(response: Any) -> TokenUsage | None:
     return TokenUsage(input_tokens, output_tokens)
 
 
+def _extract_google(response: Any) -> TokenUsage | None:
+    usage = getattr(response, "usage_metadata", None)
+    if usage is None:
+        return None
+
+    input_tokens = getattr(usage, "prompt_token_count", None)
+    output_tokens = getattr(usage, "candidates_token_count", None)
+    if input_tokens is None or output_tokens is None:
+        return None
+
+    return TokenUsage(input_tokens, output_tokens)
+
+
 # Tried in order, most common provider first
 _EXTRACTORS: tuple[Callable[[Any], TokenUsage | None], ...] = (
     _extract_openai,
     _extract_anthropic,
+    _extract_google,
 )
