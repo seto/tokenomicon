@@ -45,6 +45,41 @@ class TestAnthropicExtraction:
         assert usage == TokenUsage(input_tokens=150, output_tokens=40)
 
 
+class TestGoogleExtraction:
+    def test_extracts_usage_from_google_shaped_response(self) -> None:
+        response = SimpleNamespace(
+            usage_metadata=SimpleNamespace(
+                prompt_token_count=150, candidates_token_count=40
+            )
+        )
+
+        usage = extract_usage(response)
+
+        assert usage == TokenUsage(input_tokens=150, output_tokens=40)
+
+    def test_returns_none_if_google_usage_missing_prompt_count(self) -> None:
+        response = SimpleNamespace(
+            usage_metadata=SimpleNamespace(candidates_token_count=40)
+        )
+
+        assert extract_usage(response) is None
+
+    def test_google_shape_does_not_false_positive_on_openai_or_anthropic(
+        self,
+    ) -> None:
+        # usage_metadata is a distinct attribute name from usage, so an
+        # OpenAI/Anthropic-shaped response (which has .usage, not
+        # .usage_metadata) must never be misidentified as Google.
+        response = SimpleNamespace(
+            usage=SimpleNamespace(prompt_tokens=150, completion_tokens=40)
+        )
+
+        usage = extract_usage(response)
+
+        # Must still resolve via the OpenAI extractor, not fall through.
+        assert usage == TokenUsage(input_tokens=150, output_tokens=40)
+
+
 class TestUnrecognizedResponses:
     def test_returns_none_for_response_without_usage_attribute(self) -> None:
         response = SimpleNamespace(choices=["something"])
