@@ -1,7 +1,0 @@
-black~=26.5
-build~=1.5
-invoke~=3.0
-isort~=8.0
-pytest~=9.1
-pytest-cov~=7.1
-twine~=6.2
