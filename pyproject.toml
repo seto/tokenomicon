@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tokenomicon"
-version = "0.0.0"
+version = "0.1.0"
 description = "Post-hoc financial divination tool for LLM hunger and budget dread."
 readme = "README.md"
 authors = [{ name="seto" }]
 license = { text="Apache-2.0" }
 requires-python = ">=3.11"
 classifiers = [
-    "Development Status :: 1 - Planning",
+    "Development Status :: 4 - Beta",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -45,7 +45,8 @@ integration = [
 ]
 
 [project.urls]
-"Source" = "https://github.com/seto/tokenomicon"
+Source = "https://github.com/seto/tokenomicon"
+Changelog = "https://github.com/seto/tokenomicon/releases"
 
 [tool.setuptools.packages.find]
 where = ["src"]
