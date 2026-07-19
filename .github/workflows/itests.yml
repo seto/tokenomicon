@@ -1,0 +1,35 @@
+name: Run integration test suite
+
+on:
+  workflow_dispatch: {} # Manual trigger only, never runs on push/PR
+
+jobs:
+  integration:
+    environment: integration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev,integration]"
+
+      - name: Run integration tests
+        run: pytest tests/integration -v
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_TEST_MODEL: ${{ vars.OPENAI_TEST_MODEL }}
+
+          OPENROUTER_BASE_URL: ${{ vars.OPENROUTER_BASE_URL }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_TEST_MODEL: ${{ vars.OPENROUTER_TEST_MODEL }}
+
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_TEST_MODEL: ${{ vars.ANTHROPIC_TEST_MODEL }}
+
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          GOOGLE_TEST_MODEL: ${{ vars.GOOGLE_TEST_MODEL }}
