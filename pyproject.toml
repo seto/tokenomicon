@@ -37,6 +37,12 @@ dev = [
     "pytest-cov~=7.1",
     "twine~=6.2"
 ]
+integration = [
+    "anthropic~=0.117",
+    "google-genai~=2.12",
+    "openai~=2.46",
+    "python-dotenv~=1.2",
+]
 
 [project.urls]
 "Source" = "https://github.com/seto/tokenomicon"
