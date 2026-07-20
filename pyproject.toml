@@ -46,7 +46,7 @@ integration = [
 
 [project.urls]
 Source = "https://github.com/seto/tokenomicon"
-Changelog = "https://github.com/seto/tokenomicon/releases"
+Changelog = "https://github.com/seto/tokenomicon/blob/master/CHANGES.md"
 
 [tool.setuptools.packages.find]
 where = ["src"]

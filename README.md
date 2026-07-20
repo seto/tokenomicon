@@ -215,8 +215,10 @@ See `tests/integration/conftest.py` for the expected environment variables.
 
 This program is licensed under the
 [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).  
-See the [LICENSE](LICENSE) file for details.
+See the [LICENSE](https://github.com/seto/tokenomicon/blob/master/LICENSE) file for
+details.
 
 ## Changelog
 
-See [CHANGES.md](CHANGES.md) for release notes.
+See [CHANGES.md](https://github.com/seto/tokenomicon/blob/master/CHANGES.md) for release
+notes.
