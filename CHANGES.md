@@ -1,5 +1,12 @@
 # Changelog
 
+## Version 0.1.1
+
+- Nothing really changed, but the README links to the license and changelog files on
+  GitHub instead of the relative repo paths, which were broken when rendered on PyPI.
+- The `Changelog` URL in `pyproject.toml` now points to `CHANGES.md` instead of the
+  (mostly empty) GitHub Releases page.
+
 ## Version 0.1.0
 
 - First published version, because the models are hungry and the budget is finite!
