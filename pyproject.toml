@@ -35,6 +35,7 @@ dev = [
     "isort~=8.0",
     "pytest~=9.1",
     "pytest-cov~=7.1",
+    "ruff~=0.16",
     "twine>=6.2,<8.0"
 ]
 integration = [
@@ -70,3 +71,20 @@ extend-exclude = '''
 [tool.isort]
 profile = "black"
 line_length = 88
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+extend-exclude = ["src/tokenomicon/currencies.py"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "B",    # flake8-bugbear 
+    "UP",   # pyupgrade
+    "SIM",  # flake8-simplify 
+    "FURB", # refurb
+]
+ignore = ["E501"]  # Ignore line length errors, as Black handles formatting

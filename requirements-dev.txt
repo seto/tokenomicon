@@ -4,4 +4,5 @@ invoke~=3.0
 isort~=8.0
 pytest~=9.1
 pytest-cov~=7.1
+ruff~=0.16
 twine>=6.2,<8.0
