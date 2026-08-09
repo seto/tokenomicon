@@ -15,6 +15,15 @@
 """Automatic token-usage extraction from known LLM provider response shapes.
 
 Provides best-effort parsers for common providers (OpenAI, Anthropic, Google).
+
+Where a provider reports prompt-cache reads (OpenAI's cached_tokens, Google's
+cached_content_token_count, Anthropic's cache_read_input_tokens), extractors
+report them as a separate cached_tokens count, normalizing away each
+provider's own accounting (OpenAI and Google count cached tokens as a subset
+of the input total; Anthropic already counts them separately). Cache write/
+creation tokens (e.g. Anthropic's cache_creation_input_tokens) are not
+currently extracted.
+
 If no extractor recognizes a response, extract_usage() returns None and
 the caller is expected to supply token counts manually.
 """
@@ -26,6 +35,7 @@ from typing import Any, NamedTuple
 class TokenUsage(NamedTuple):
     input_tokens: int
     output_tokens: int
+    cached_tokens: int = 0
 
 
 def extract_usage(response: Any) -> TokenUsage | None:
@@ -49,7 +59,12 @@ def _extract_openai(response: Any) -> TokenUsage | None:
     if input_tokens is None or output_tokens is None:
         return None
 
-    return TokenUsage(input_tokens, output_tokens)
+    cached_tokens = 0
+    details = getattr(usage, "prompt_tokens_details", None)
+    if details is not None:
+        cached_tokens = getattr(details, "cached_tokens", None) or 0
+
+    return TokenUsage(input_tokens - cached_tokens, output_tokens, cached_tokens)
 
 
 def _extract_anthropic(response: Any) -> TokenUsage | None:
@@ -62,7 +77,9 @@ def _extract_anthropic(response: Any) -> TokenUsage | None:
     if input_tokens is None or output_tokens is None:
         return None
 
-    return TokenUsage(input_tokens, output_tokens)
+    cached_tokens = getattr(usage, "cache_read_input_tokens", None) or 0
+
+    return TokenUsage(input_tokens, output_tokens, cached_tokens)
 
 
 def _extract_google(response: Any) -> TokenUsage | None:
@@ -75,7 +92,9 @@ def _extract_google(response: Any) -> TokenUsage | None:
     if input_tokens is None or output_tokens is None:
         return None
 
-    return TokenUsage(input_tokens, output_tokens)
+    cached_tokens = getattr(usage, "cached_content_token_count", None) or 0
+
+    return TokenUsage(input_tokens - cached_tokens, output_tokens, cached_tokens)
 
 
 # Tried in order, most common provider first

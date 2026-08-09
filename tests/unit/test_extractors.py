@@ -21,6 +21,47 @@ class TestOpenAIExtraction:
 
         assert usage is None
 
+    def test_extracts_cached_tokens_and_subtracts_from_input(self) -> None:
+        # OpenAI reports cached_tokens as a subset of prompt_tokens: the
+        # extractor must normalize it to a separate count, not double-count.
+        response = SimpleNamespace(
+            usage=SimpleNamespace(
+                prompt_tokens=150,
+                completion_tokens=40,
+                prompt_tokens_details=SimpleNamespace(cached_tokens=100),
+            )
+        )
+
+        usage = extract_usage(response)
+
+        assert usage == TokenUsage(input_tokens=50, output_tokens=40, cached_tokens=100)
+
+    def test_defaults_cached_tokens_to_zero_when_details_missing(self) -> None:
+        response = SimpleNamespace(
+            usage=SimpleNamespace(prompt_tokens=150, completion_tokens=40)
+        )
+
+        usage = extract_usage(response)
+
+        assert usage == TokenUsage(input_tokens=150, output_tokens=40, cached_tokens=0)
+
+    def test_defaults_cached_tokens_to_zero_when_cached_tokens_field_missing(
+        self,
+    ) -> None:
+        # prompt_tokens_details present but without cached_tokens itself
+        # (e.g. a partial/older response shape).
+        response = SimpleNamespace(
+            usage=SimpleNamespace(
+                prompt_tokens=150,
+                completion_tokens=40,
+                prompt_tokens_details=SimpleNamespace(),
+            )
+        )
+
+        usage = extract_usage(response)
+
+        assert usage == TokenUsage(input_tokens=150, output_tokens=40, cached_tokens=0)
+
 
 class TestAnthropicExtraction:
     def test_extracts_usage_from_anthropic_shaped_response(self) -> None:
@@ -43,6 +84,28 @@ class TestAnthropicExtraction:
         usage = extract_usage(response)
 
         assert usage == TokenUsage(input_tokens=150, output_tokens=40)
+
+    def test_extracts_cached_tokens_as_separate_count(self) -> None:
+        # Anthropic already reports input_tokens excluding cache reads:
+        # no subtraction needed, unlike OpenAI/Google.
+        response = SimpleNamespace(
+            usage=SimpleNamespace(
+                input_tokens=50, output_tokens=40, cache_read_input_tokens=100
+            )
+        )
+
+        usage = extract_usage(response)
+
+        assert usage == TokenUsage(input_tokens=50, output_tokens=40, cached_tokens=100)
+
+    def test_defaults_cached_tokens_to_zero_when_cache_read_field_missing(self) -> None:
+        response = SimpleNamespace(
+            usage=SimpleNamespace(input_tokens=150, output_tokens=40)
+        )
+
+        usage = extract_usage(response)
+
+        assert usage == TokenUsage(input_tokens=150, output_tokens=40, cached_tokens=0)
 
 
 class TestGoogleExtraction:
@@ -78,6 +141,32 @@ class TestGoogleExtraction:
 
         # Must still resolve via the OpenAI extractor, not fall through.
         assert usage == TokenUsage(input_tokens=150, output_tokens=40)
+
+    def test_extracts_cached_tokens_and_subtracts_from_input(self) -> None:
+        # Google reports cached_content_token_count as a subset of
+        # prompt_token_count, same accounting model as OpenAI.
+        response = SimpleNamespace(
+            usage_metadata=SimpleNamespace(
+                prompt_token_count=150,
+                candidates_token_count=40,
+                cached_content_token_count=100,
+            )
+        )
+
+        usage = extract_usage(response)
+
+        assert usage == TokenUsage(input_tokens=50, output_tokens=40, cached_tokens=100)
+
+    def test_defaults_cached_tokens_to_zero_when_field_missing(self) -> None:
+        response = SimpleNamespace(
+            usage_metadata=SimpleNamespace(
+                prompt_token_count=150, candidates_token_count=40
+            )
+        )
+
+        usage = extract_usage(response)
+
+        assert usage == TokenUsage(input_tokens=150, output_tokens=40, cached_tokens=0)
 
 
 class TestUnrecognizedResponses:
