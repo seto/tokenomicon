@@ -67,6 +67,7 @@ class TestOpenAI:
         outcome = call()
 
         assert outcome.tribute is not None
+        assert outcome.tribute > Decimal(0)
         assert outcome.input_tokens is not None and outcome.input_tokens > 0
         assert outcome.output_tokens is not None and outcome.output_tokens > 0
         assert outcome.cached_tokens is not None and outcome.cached_tokens >= 0
@@ -93,6 +94,7 @@ class TestOpenAIViaOpenRouter:
         outcome = call()
 
         assert outcome.tribute is not None
+        assert outcome.tribute > Decimal(0)
         assert outcome.input_tokens is not None and outcome.input_tokens > 0
         assert outcome.output_tokens is not None and outcome.output_tokens > 0
         assert outcome.cached_tokens is not None and outcome.cached_tokens >= 0
@@ -117,6 +119,8 @@ class TestAnthropic:
 
         assert outcome.tribute is not None
         assert outcome.tribute > Decimal(0)
+        assert outcome.input_tokens is not None and outcome.input_tokens > 0
+        assert outcome.output_tokens is not None and outcome.output_tokens > 0
         assert outcome.cached_tokens is not None and outcome.cached_tokens >= 0
 
 
@@ -138,4 +142,6 @@ class TestGoogle:
 
         assert outcome.tribute is not None
         assert outcome.tribute > Decimal(0)
+        assert outcome.input_tokens is not None and outcome.input_tokens > 0
+        assert outcome.output_tokens is not None and outcome.output_tokens > 0
         assert outcome.cached_tokens is not None and outcome.cached_tokens >= 0
