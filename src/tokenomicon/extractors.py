@@ -19,7 +19,8 @@ If no extractor recognizes a response, extract_usage() returns None and
 the caller is expected to supply token counts manually.
 """
 
-from typing import Any, Callable, NamedTuple
+from collections.abc import Callable
+from typing import Any, NamedTuple
 
 
 class TokenUsage(NamedTuple):

@@ -20,10 +20,11 @@ caller's access to that response untouched.
 """
 
 import warnings
+from collections.abc import Callable
 from dataclasses import dataclass
 from decimal import Decimal
 from functools import wraps
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 from .config import config
 from .exceptions import TokenExtractionWarning
