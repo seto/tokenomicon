@@ -110,6 +110,27 @@ output_per_million = "${GPT_5_4_MINI_OUTPUT}"
 
 A referenced variable that isn't set raises `ConfigError`.
 
+### Prompt caching
+
+Set `cached_input_per_million` on a plan to price cache reads at a discounted rate:
+
+```toml
+[claude-sonnet-5]
+input_per_million = "3.00"
+output_per_million = "15.00"
+cached_input_per_million = "0.30"
+```
+
+Cached tokens are billed separately from regular input tokens, not as a subset of them,
+matching how the token counts are reported back to `tribute()` and `CallResult`. If
+`cached_input_per_million` isn't set, cached tokens fall back to the regular input rate
+— no discount, but nothing lost or silently dropped either.
+
+Extraction is automatic wherever the provider reports it: OpenAI's `cached_tokens`,
+Anthropic's `cache_read_input_tokens`, and Google's `cached_content_token_count` are all
+recognized. Cache _write_ costs (e.g. Anthropic's cache creation premium) aren't tracked
+yet — see [Not yet supported](#not-yet-supported).
+
 ## The `augur` decorator
 
 `augur` wraps a function that returns a provider response. It reads token usage off that
@@ -123,6 +144,7 @@ class CallResult:
     tribute: Decimal | None  # what this call owes, or None if undetermined
     input_tokens: int | None
     output_tokens: int | None
+    cached_tokens: int | None  # tokens served from a prompt cache, 0 if none
     currency: str | None
 ```
 
@@ -188,7 +210,8 @@ call, it only signals that the tribute couldn't be determined.
 
 ## Not yet supported
 
-- **Prompt caching** (discounted cached input tokens).
+- **Prompt cache writes** (e.g. Anthropic's cache-creation premium pricing). Cache
+  _reads_ are supported; see [Prompt caching](#prompt-caching).
 - **Cost accumulation / ledger** across multiple calls. Tokenomicon deliberately stays
   per-call; aggregate however fits your own storage.
 
