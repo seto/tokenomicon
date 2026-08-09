@@ -16,8 +16,14 @@
 
 PricingPlan holds the per-model rate (input/output cost per million
 tokens, in a given ISO 4217 currency) and computes the tribute of a call
-given its token counts. All arithmetic uses Decimal to avoid float
-rounding drift across repeated calculations.
+given its token counts.
+
+An optional cached_input_per_million rate covers
+prompt-cache reads; when unset, cached tokens are billed at the regular
+input rate rather than being discounted or ignored.
+
+All arithmetic uses
+Decimal to avoid float rounding drift across repeated calculations.
 """
 
 from dataclasses import dataclass
@@ -39,6 +45,7 @@ class PricingPlan:
     input_per_million: Decimal
     output_per_million: Decimal
     currency: str = "USD"
+    cached_input_per_million: Decimal | None = None
 
     def __post_init__(self) -> None:
         if self.currency not in ISO_4217_CODES:
@@ -50,19 +57,39 @@ class PricingPlan:
                 f"Rates cannot be negative: "
                 f"input={self.input_per_million}, output={self.output_per_million}"
             )
+        if self.cached_input_per_million is not None and self.cached_input_per_million < 0:
+            raise InvalidPricingError(
+                f"Rates cannot be negative: "
+                f"cached_input={self.cached_input_per_million}"
+            )
 
-    def tribute(self, input_tokens: int, output_tokens: int) -> Decimal:
-        if input_tokens < 0 or output_tokens < 0:
+    def tribute(self, input_tokens: int, output_tokens: int, cached_tokens: int = 0) -> Decimal:
+        """Calculate the tribute for a call.
+
+        cached_tokens is billed at cached_input_per_million if configured,
+        otherwise falls back to input_per_million. It is billed separately
+        from input_tokens, not as a subset of it.
+        """
+
+        if input_tokens < 0 or output_tokens < 0 or cached_tokens < 0:
             raise NegativeTokenCountError(
                 f"Negative token count not allowed: "
-                f"input={input_tokens}, output={output_tokens}"
+                f"input={input_tokens}, output={output_tokens}, "
+                f"cached={cached_tokens}"
             )
+
+        cached_rate = (
+            self.cached_input_per_million
+            if self.cached_input_per_million is not None
+            else self.input_per_million
+        )
 
         input_cost = (Decimal(input_tokens) * self.input_per_million) / Decimal(
             1_000_000
         )
+        cached_cost = (Decimal(cached_tokens) * cached_rate) / Decimal(1_000_000)
         output_cost = (Decimal(output_tokens) * self.output_per_million) / Decimal(
             1_000_000
         )
 
-        return input_cost + output_cost
+        return input_cost + cached_cost + output_cost

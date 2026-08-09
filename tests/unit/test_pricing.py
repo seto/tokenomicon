@@ -81,6 +81,42 @@ class TestPricingPlanValidation:
         with pytest.raises(AttributeError):
             plan.currency = "EUR"  # type: ignore[misc]
 
+    def test_valid_plan_with_cached_rate(self) -> None:
+        plan = PricingPlan(
+            model="gpt-5-mini",
+            input_per_million=Decimal("0.25"),
+            output_per_million=Decimal("2.00"),
+            cached_input_per_million=Decimal("0.10"),
+        )
+        assert plan.cached_input_per_million == Decimal("0.10")
+
+    def test_cached_rate_defaults_to_none(self) -> None:
+        plan = PricingPlan(
+            model="gpt-5-mini",
+            input_per_million=Decimal("0.25"),
+            output_per_million=Decimal("2.00"),
+        )
+        assert plan.cached_input_per_million is None
+
+    def test_rejects_negative_cached_rate(self) -> None:
+        with pytest.raises(InvalidPricingError):
+            PricingPlan(
+                model="gpt-5-mini",
+                input_per_million=Decimal("0.25"),
+                output_per_million=Decimal("2.00"),
+                cached_input_per_million=Decimal("-0.10"),
+            )
+
+    def test_allows_zero_cached_rate(self) -> None:
+        # A fully-free cache read is legitimate (e.g. some providers today).
+        plan = PricingPlan(
+            model="gpt-5-mini",
+            input_per_million=Decimal("0.25"),
+            output_per_million=Decimal("2.00"),
+            cached_input_per_million=Decimal(0),
+        )
+        assert plan.tribute(0, 0, cached_tokens=1000) == Decimal(0)
+
 
 class TestPricingPlanCost:
     def test_tribute_basic_calculation(self) -> None:
@@ -140,3 +176,48 @@ class TestPricingPlanCost:
         )
         with pytest.raises(NegativeTokenCountError):
             plan.tribute(100, -1)
+
+    def test_tribute_with_cached_tokens_at_discounted_rate(self) -> None:
+        plan = PricingPlan(
+            model="gpt-5-mini",
+            input_per_million=Decimal("0.25"),
+            output_per_million=Decimal("2.00"),
+            cached_input_per_million=Decimal("0.10"),
+        )
+        # 1,000,000 regular input + 1,000,000 cached input + 1,000,000 output
+        tribute = plan.tribute(1_000_000, 1_000_000, cached_tokens=1_000_000)
+        assert tribute == Decimal("0.25") + Decimal("0.10") + Decimal("2.00")
+
+    def test_tribute_cached_tokens_fallback_to_input_rate_when_not_configured(
+        self,
+    ) -> None:
+        # No cached_input_per_million set: cached tokens must be billed at
+        # the regular input rate, not silently discounted or dropped.
+        plan = PricingPlan(
+            model="gpt-5-mini",
+            input_per_million=Decimal("0.25"),
+            output_per_million=Decimal("2.00"),
+        )
+        with_cached = plan.tribute(0, 0, cached_tokens=1_000_000)
+        without_cached = plan.tribute(1_000_000, 0)
+        assert with_cached == without_cached == Decimal("0.25")
+
+    def test_tribute_cached_tokens_default_to_zero(self) -> None:
+        # Backward compatibility: callers not using caching must see
+        # identical behavior to before this feature existed.
+        plan = PricingPlan(
+            model="gpt-5-mini",
+            input_per_million=Decimal("0.25"),
+            output_per_million=Decimal("2.00"),
+            cached_input_per_million=Decimal("0.10"),
+        )
+        assert plan.tribute(1_000_000, 1_000_000) == Decimal("2.25")
+
+    def test_tribute_rejects_negative_cached_tokens(self) -> None:
+        plan = PricingPlan(
+            model="gpt-5-mini",
+            input_per_million=Decimal("0.25"),
+            output_per_million=Decimal("2.00"),
+        )
+        with pytest.raises(NegativeTokenCountError):
+            plan.tribute(100, 100, cached_tokens=-1)
