@@ -60,12 +60,18 @@ class Config:
             try:
                 input_per_million = Decimal(str(rates["input_per_million"]))
                 output_per_million = Decimal(str(rates["output_per_million"]))
+                cached_input_per_million = (
+                    Decimal(str(rates["cached_input_per_million"]))
+                    if "cached_input_per_million" in rates
+                    else None
+                )
 
             except InvalidOperation:
                 raise ConfigError(
                     f"Invalid numeric value for model '{model}': "
                     f"input={rates.get('input_per_million')!r}, "
-                    f"output={rates.get('output_per_million')!r}"
+                    f"output={rates.get('output_per_million')!r}, "
+                    f"cached_input={rates.get('cached_input_per_million')!r}"
                 ) from None
 
             except KeyError as exc:
@@ -79,6 +85,7 @@ class Config:
                     input_per_million=input_per_million,
                     output_per_million=output_per_million,
                     currency=rates.get("currency", "USD"),
+                    cached_input_per_million=cached_input_per_million,
                 )
             )
 
