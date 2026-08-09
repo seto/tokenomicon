@@ -107,7 +107,7 @@ class TestAnthropic:
         outcome = call()
 
         assert outcome.tribute is not None
-        assert outcome.tribute > Decimal("0")
+        assert outcome.tribute > Decimal(0)
 
 
 class TestGoogle:
@@ -127,4 +127,4 @@ class TestGoogle:
         outcome = call()
 
         assert outcome.tribute is not None
-        assert outcome.tribute > Decimal("0")
+        assert outcome.tribute > Decimal(0)

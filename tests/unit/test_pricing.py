@@ -67,10 +67,10 @@ class TestPricingPlanValidation:
         # A free tier (e.g. local models) is a legitimate zero-tribute plan.
         plan = PricingPlan(
             model="local-llama",
-            input_per_million=Decimal("0"),
-            output_per_million=Decimal("0"),
+            input_per_million=Decimal(0),
+            output_per_million=Decimal(0),
         )
-        assert plan.tribute(1000, 1000) == Decimal("0")
+        assert plan.tribute(1000, 1000) == Decimal(0)
 
     def test_plan_is_immutable(self) -> None:
         plan = PricingPlan(
@@ -109,7 +109,7 @@ class TestPricingPlanCost:
             input_per_million=Decimal("0.25"),
             output_per_million=Decimal("2.00"),
         )
-        assert plan.tribute(0, 0) == Decimal("0")
+        assert plan.tribute(0, 0) == Decimal(0)
 
     def test_tribute_uses_decimal_precision(self) -> None:
         # Regression guard: this must never drift to float rounding errors

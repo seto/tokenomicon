@@ -84,9 +84,9 @@ class TestAugurManualTokensFallback:
 
         outcome = call_local()
 
-        assert outcome.tribute == Decimal("3.00") * Decimal("200") / Decimal(
+        assert outcome.tribute == Decimal("3.00") * Decimal(200) / Decimal(
             1_000_000
-        ) + Decimal("15.00") * Decimal("100") / Decimal(1_000_000)
+        ) + Decimal("15.00") * Decimal(100) / Decimal(1_000_000)
         assert outcome.input_tokens == 200
         assert outcome.output_tokens == 100
 
