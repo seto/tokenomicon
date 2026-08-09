@@ -4,6 +4,13 @@ Confirms tokenomicon's extractors recognize genuine response shapes,
 not just hand-built SimpleNamespace fixtures. Uses the cheapest
 available model per provider and a one-token prompt to keep any real
 spend negligible.
+
+Prompt caching is exercised only at the unit-test level (deterministic
+SimpleNamespace fixtures). Forcing a real cache hit here would require
+padding requests to each provider's minimum cacheable size and is
+best-effort on the provider side (not guaranteed per-request), which
+would make this test suite flaky without adding real coverage
+of tokenomicon's own logic.
 """
 
 from decimal import Decimal
@@ -62,6 +69,7 @@ class TestOpenAI:
         assert outcome.tribute is not None
         assert outcome.input_tokens is not None and outcome.input_tokens > 0
         assert outcome.output_tokens is not None and outcome.output_tokens > 0
+        assert outcome.cached_tokens is not None and outcome.cached_tokens >= 0
 
 
 @pytest.mark.skip(reason="Placeholder test alternative for OpenAI calls")
@@ -87,6 +95,7 @@ class TestOpenAIViaOpenRouter:
         assert outcome.tribute is not None
         assert outcome.input_tokens is not None and outcome.input_tokens > 0
         assert outcome.output_tokens is not None and outcome.output_tokens > 0
+        assert outcome.cached_tokens is not None and outcome.cached_tokens >= 0
 
 
 class TestAnthropic:
@@ -108,6 +117,7 @@ class TestAnthropic:
 
         assert outcome.tribute is not None
         assert outcome.tribute > Decimal(0)
+        assert outcome.cached_tokens is not None and outcome.cached_tokens >= 0
 
 
 class TestGoogle:
@@ -128,3 +138,4 @@ class TestGoogle:
 
         assert outcome.tribute is not None
         assert outcome.tribute > Decimal(0)
+        assert outcome.cached_tokens is not None and outcome.cached_tokens >= 0
