@@ -7,6 +7,7 @@
   <a href="https://github.com/seto/tokenomicon/actions"><img src="https://img.shields.io/github/actions/workflow/status/seto/tokenomicon/utests.yml?label=utests&logo=github" alt="Unit Tests"></a>
   <a href="https://github.com/seto/tokenomicon/actions"><img src="https://img.shields.io/github/actions/workflow/status/seto/tokenomicon/itests.yml?label=itests&logo=github" alt="Integration Tests"></a>
   <a href="https://github.com/psf/black"><img src="https://img.shields.io/badge/code_style-black-000000.svg" alt="Code Style: Black"></a>
+  <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Linting: Ruff"></a>
 </p>
 
 **Tokenomicon** is a post-hoc financial divination tool for LLM hunger and budget dread.
