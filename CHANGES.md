@@ -1,5 +1,33 @@
 # Changelog
 
+## Version 0.2.0
+
+### Prompt Caching
+
+- Implemented prompt caching support: `PricingPlan.cached_input_per_million` prices
+  cache reads at a discounted rate (falling back to the regular input rate when unset).
+  Extractors recognize cache reads automatically across OpenAI, Anthropic, and Google
+  response shapes, and cache token counts are billed separately from regular input
+  tokens (not as a subset), matching how each provider ultimately reports them.
+  `CallResult` now exposes `cached_tokens` alongside the existing token counts. Cache
+  _write_ costs (e.g. Anthropic's cache-creation premium) aren't tracked yet.
+
+### Code Style and Linting
+
+- Enabled Ruff as linter with the following rules:
+  - E: pycodestyle errors
+  - W: pycodestyle warnings
+  - F: Pyflakes errors
+  - B: flake8-bugbear warnings
+  - UP: pyupgrade warnings and modernizations
+  - SIM: flake8-simplify rules
+  - FURB: Refurb rules
+- Ignore line length errors (E501) since Black handles formatting.
+
+### Dependency Updates
+
+- Fixed typo in Dependabot workflow that prevented it from running on schedule.
+
 ## Version 0.1.1
 
 - Nothing really changed, but the README links to the license and changelog files on
