@@ -44,7 +44,7 @@ pip install tokenomicon
 ## Quick start
 
 ```python
-from tokenomicon import config, augur
+from tokenomicon import augur, config
 
 config.load_toml("pricing.toml")
 
@@ -57,7 +57,7 @@ def call_llm(prompt: str):
 
 outcome = call_llm("hi")
 
-print(outcome.tribute)  # Decimal('3.14159'), what this call owes
+print(outcome.tribute)  # Decimal("3.14159"), what this call owes
 print(outcome.result)  # the original provider response, untouched
 ```
 
@@ -220,8 +220,8 @@ call, it only signals that the tribute couldn't be determined.
 ```bash
 git clone https://github.com/seto/tokenomicon.git
 cd tokenomicon
-pip install -e ".[dev]"
-pytest tests/unit
+pip install -r requirements-dev.txt
+invoke utest
 ```
 
 Integration tests make real, minimal calls against actual provider SDKs, to confirm
@@ -230,7 +230,7 @@ require API keys and are opt-in only:
 
 ```bash
 pip install -r tests/integration/requirements.txt
-pytest tests/integration
+invoke itest
 ```
 
 See `tests/integration/conftest.py` for the expected environment variables.
