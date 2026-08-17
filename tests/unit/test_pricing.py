@@ -156,6 +156,7 @@ class TestPricingPlanValidation:
                 cache_write_1h_per_million=Decimal("-6.00"),
             )
 
+
 class TestPricingPlanCost:
     def test_tribute_basic_calculation(self) -> None:
         plan = PricingPlan(
@@ -267,9 +268,7 @@ class TestPricingPlanCost:
             output_per_million=Decimal("15.00"),
             cache_write_5m_per_million=Decimal("3.75"),
         )
-        tribute = plan.tribute(
-            1_000_000, 1_000_000, cache_write_5m_tokens=1_000_000
-        )
+        tribute = plan.tribute(1_000_000, 1_000_000, cache_write_5m_tokens=1_000_000)
         assert tribute == Decimal("3.00") + Decimal("15.00") + Decimal("3.75")
 
     def test_tribute_with_cache_write_1h_tokens(self) -> None:
@@ -279,9 +278,7 @@ class TestPricingPlanCost:
             output_per_million=Decimal("15.00"),
             cache_write_1h_per_million=Decimal("6.00"),
         )
-        tribute = plan.tribute(
-            1_000_000, 1_000_000, cache_write_1h_tokens=1_000_000
-        )
+        tribute = plan.tribute(1_000_000, 1_000_000, cache_write_1h_tokens=1_000_000)
         assert tribute == Decimal("3.00") + Decimal("15.00") + Decimal("6.00")
 
     def test_tribute_with_both_cache_write_tiers(self) -> None:

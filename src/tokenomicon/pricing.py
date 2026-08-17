@@ -67,23 +67,33 @@ class PricingPlan:
                 f"Rates cannot be negative: "
                 f"input={self.input_per_million}, output={self.output_per_million}"
             )
-        if self.cached_input_per_million is not None and self.cached_input_per_million < 0:
+        if (
+            self.cached_input_per_million is not None
+            and self.cached_input_per_million < 0
+        ):
             raise InvalidPricingError(
                 f"Rates cannot be negative: "
                 f"cached_input={self.cached_input_per_million}"
             )
-        if self.cache_write_5m_per_million is not None and self.cache_write_5m_per_million < 0:
+        if (
+            self.cache_write_5m_per_million is not None
+            and self.cache_write_5m_per_million < 0
+        ):
             raise InvalidPricingError(
                 f"Rates cannot be negative: "
                 f"cache_write_5m={self.cache_write_5m_per_million}"
             )
-        if self.cache_write_1h_per_million is not None and self.cache_write_1h_per_million < 0:
+        if (
+            self.cache_write_1h_per_million is not None
+            and self.cache_write_1h_per_million < 0
+        ):
             raise InvalidPricingError(
                 f"Rates cannot be negative: "
                 f"cache_write_1h={self.cache_write_1h_per_million}"
             )
 
-    def tribute(self,
+    def tribute(
+        self,
         input_tokens: int,
         output_tokens: int,
         cached_tokens: int = 0,
