@@ -31,6 +31,7 @@ from decimal import Decimal
 
 from .currencies import ISO_4217_CODES
 from .exceptions import (
+    CachePricingNotConfiguredError,
     InvalidCurrencyError,
     InvalidPricingError,
     NegativeTokenCountError,
@@ -46,6 +47,8 @@ class PricingPlan:
     output_per_million: Decimal
     currency: str = "USD"
     cached_input_per_million: Decimal | None = None
+    cache_write_5m_per_million: Decimal | None = None
+    cache_write_1h_per_million: Decimal | None = None
 
     def __post_init__(self) -> None:
         if self.currency not in ISO_4217_CODES:
@@ -62,20 +65,61 @@ class PricingPlan:
                 f"Rates cannot be negative: "
                 f"cached_input={self.cached_input_per_million}"
             )
+        if self.cache_write_5m_per_million is not None and self.cache_write_5m_per_million < 0:
+            raise InvalidPricingError(
+                f"Rates cannot be negative: "
+                f"cache_write_5m={self.cache_write_5m_per_million}"
+            )
+        if self.cache_write_1h_per_million is not None and self.cache_write_1h_per_million < 0:
+            raise InvalidPricingError(
+                f"Rates cannot be negative: "
+                f"cache_write_1h={self.cache_write_1h_per_million}"
+            )
 
-    def tribute(self, input_tokens: int, output_tokens: int, cached_tokens: int = 0) -> Decimal:
+    def tribute(self,
+        input_tokens: int,
+        output_tokens: int,
+        cached_tokens: int = 0,
+        cache_write_5m_tokens: int = 0,
+        cache_write_1h_tokens: int = 0,
+    ) -> Decimal:
         """Calculate the tribute for a call.
 
-        cached_tokens is billed at cached_input_per_million if configured,
-        otherwise falls back to input_per_million. It is billed separately
-        from input_tokens, not as a subset of it.
+        cached_tokens (cache reads) are billed at cached_input_per_million if
+        configured, otherwise fall back to input_per_million. They are billed
+        separately from input_tokens, not as a subset of it.
+
+        cache_write_5m_tokens and cache_write_1h_tokens (cache creation) are
+        billed at their respective configured rates. Unlike cached_tokens,
+        there is no fallback: if either count is nonzero and its rate isn't
+        configured, tribute() raises CachePricingNotConfiguredError rather
+        than silently underestimating the cost of a write premium it can't
+        quantify.
         """
 
-        if input_tokens < 0 or output_tokens < 0 or cached_tokens < 0:
+        if (
+            input_tokens < 0
+            or output_tokens < 0
+            or cached_tokens < 0
+            or cache_write_5m_tokens < 0
+            or cache_write_1h_tokens < 0
+        ):
             raise NegativeTokenCountError(
                 f"Negative token count not allowed: "
                 f"input={input_tokens}, output={output_tokens}, "
-                f"cached={cached_tokens}"
+                f"cached={cached_tokens}, cache_write_5m={cache_write_5m_tokens}, "
+                f"cache_write_1h={cache_write_1h_tokens}"
+            )
+
+        if cache_write_5m_tokens > 0 and self.cache_write_5m_per_million is None:
+            raise CachePricingNotConfiguredError(
+                f"Model '{self.model}' has cache_write_5m_tokens={cache_write_5m_tokens} "
+                f"but no cache_write_5m_per_million rate is configured."
+            )
+        if cache_write_1h_tokens > 0 and self.cache_write_1h_per_million is None:
+            raise CachePricingNotConfiguredError(
+                f"Model '{self.model}' has cache_write_1h_tokens={cache_write_1h_tokens} "
+                f"but no cache_write_1h_per_million rate is configured."
             )
 
         cached_rate = (
@@ -92,4 +136,16 @@ class PricingPlan:
             1_000_000
         )
 
-        return input_cost + cached_cost + output_cost
+        write_5m_cost = Decimal(0)
+        if cache_write_5m_tokens > 0:
+            write_5m_cost = (
+                Decimal(cache_write_5m_tokens) * self.cache_write_5m_per_million
+            ) / Decimal(1_000_000)
+
+        write_1h_cost = Decimal(0)
+        if cache_write_1h_tokens > 0:
+            write_1h_cost = (
+                Decimal(cache_write_1h_tokens) * self.cache_write_1h_per_million
+            ) / Decimal(1_000_000)
+
+        return input_cost + cached_cost + output_cost + write_5m_cost + write_1h_cost

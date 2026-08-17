@@ -3,6 +3,7 @@ from decimal import Decimal
 import pytest
 
 from tokenomicon.exceptions import (
+    CachePricingNotConfiguredError,
     InvalidCurrencyError,
     InvalidPricingError,
     NegativeTokenCountError,
@@ -117,6 +118,43 @@ class TestPricingPlanValidation:
         )
         assert plan.tribute(0, 0, cached_tokens=1000) == Decimal(0)
 
+    def test_valid_plan_with_cache_write_rates(self) -> None:
+        plan = PricingPlan(
+            model="claude-sonnet-5",
+            input_per_million=Decimal("3.00"),
+            output_per_million=Decimal("15.00"),
+            cache_write_5m_per_million=Decimal("3.75"),
+            cache_write_1h_per_million=Decimal("6.00"),
+        )
+        assert plan.cache_write_5m_per_million == Decimal("3.75")
+        assert plan.cache_write_1h_per_million == Decimal("6.00")
+
+    def test_cache_write_rates_default_to_none(self) -> None:
+        plan = PricingPlan(
+            model="claude-sonnet-5",
+            input_per_million=Decimal("3.00"),
+            output_per_million=Decimal("15.00"),
+        )
+        assert plan.cache_write_5m_per_million is None
+        assert plan.cache_write_1h_per_million is None
+
+    def test_rejects_negative_cache_write_5m_rate(self) -> None:
+        with pytest.raises(InvalidPricingError):
+            PricingPlan(
+                model="claude-sonnet-5",
+                input_per_million=Decimal("3.00"),
+                output_per_million=Decimal("15.00"),
+                cache_write_5m_per_million=Decimal("-3.75"),
+            )
+
+    def test_rejects_negative_cache_write_1h_rate(self) -> None:
+        with pytest.raises(InvalidPricingError):
+            PricingPlan(
+                model="claude-sonnet-5",
+                input_per_million=Decimal("3.00"),
+                output_per_million=Decimal("15.00"),
+                cache_write_1h_per_million=Decimal("-6.00"),
+            )
 
 class TestPricingPlanCost:
     def test_tribute_basic_calculation(self) -> None:
@@ -221,3 +259,96 @@ class TestPricingPlanCost:
         )
         with pytest.raises(NegativeTokenCountError):
             plan.tribute(100, 100, cached_tokens=-1)
+
+    def test_tribute_with_cache_write_5m_tokens(self) -> None:
+        plan = PricingPlan(
+            model="claude-sonnet-5",
+            input_per_million=Decimal("3.00"),
+            output_per_million=Decimal("15.00"),
+            cache_write_5m_per_million=Decimal("3.75"),
+        )
+        tribute = plan.tribute(
+            1_000_000, 1_000_000, cache_write_5m_tokens=1_000_000
+        )
+        assert tribute == Decimal("3.00") + Decimal("15.00") + Decimal("3.75")
+
+    def test_tribute_with_cache_write_1h_tokens(self) -> None:
+        plan = PricingPlan(
+            model="claude-sonnet-5",
+            input_per_million=Decimal("3.00"),
+            output_per_million=Decimal("15.00"),
+            cache_write_1h_per_million=Decimal("6.00"),
+        )
+        tribute = plan.tribute(
+            1_000_000, 1_000_000, cache_write_1h_tokens=1_000_000
+        )
+        assert tribute == Decimal("3.00") + Decimal("15.00") + Decimal("6.00")
+
+    def test_tribute_with_both_cache_write_tiers(self) -> None:
+        # Anthropic reports both as distinct counts on the same call; a
+        # single request could in principle hit both tiers.
+        plan = PricingPlan(
+            model="claude-sonnet-5",
+            input_per_million=Decimal("3.00"),
+            output_per_million=Decimal("15.00"),
+            cache_write_5m_per_million=Decimal("3.75"),
+            cache_write_1h_per_million=Decimal("6.00"),
+        )
+        tribute = plan.tribute(
+            0, 0, cache_write_5m_tokens=1_000_000, cache_write_1h_tokens=1_000_000
+        )
+        assert tribute == Decimal("3.75") + Decimal("6.00")
+
+    def test_tribute_raises_when_cache_write_5m_tokens_present_but_unconfigured(
+        self,
+    ) -> None:
+        plan = PricingPlan(
+            model="claude-sonnet-5",
+            input_per_million=Decimal("3.00"),
+            output_per_million=Decimal("15.00"),
+        )
+        with pytest.raises(CachePricingNotConfiguredError, match="claude-sonnet-5"):
+            plan.tribute(100, 100, cache_write_5m_tokens=1000)
+
+    def test_tribute_raises_when_cache_write_1h_tokens_present_but_unconfigured(
+        self,
+    ) -> None:
+        plan = PricingPlan(
+            model="claude-sonnet-5",
+            input_per_million=Decimal("3.00"),
+            output_per_million=Decimal("15.00"),
+        )
+        with pytest.raises(CachePricingNotConfiguredError, match="claude-sonnet-5"):
+            plan.tribute(100, 100, cache_write_1h_tokens=1000)
+
+    def test_tribute_no_error_when_cache_write_tokens_are_zero_and_unconfigured(
+        self,
+    ) -> None:
+        # Zero write tokens is the default: must never raise, regardless of
+        # whether the rates are configured.
+        plan = PricingPlan(
+            model="claude-sonnet-5",
+            input_per_million=Decimal("3.00"),
+            output_per_million=Decimal("15.00"),
+        )
+        assert plan.tribute(100, 100) == plan.tribute(
+            100, 100, cache_write_5m_tokens=0, cache_write_1h_tokens=0
+        )
+
+    def test_tribute_rejects_negative_cache_write_5m_tokens(self) -> None:
+        plan = PricingPlan(
+            model="claude-sonnet-5",
+            input_per_million=Decimal("3.00"),
+            output_per_million=Decimal("15.00"),
+        )
+        with pytest.raises(NegativeTokenCountError):
+            plan.tribute(100, 100, cache_write_5m_tokens=-1)
+
+    def test_tribute_rejects_negative_cache_write_1h_tokens(self) -> None:
+        plan = PricingPlan(
+            model="claude-sonnet-5",
+            input_per_million=Decimal("3.00"),
+            output_per_million=Decimal("15.00"),
+        )
+        with pytest.raises(NegativeTokenCountError):
+            plan.tribute(100, 100, cache_write_1h_tokens=-1)

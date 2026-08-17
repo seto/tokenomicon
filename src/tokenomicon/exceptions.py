@@ -24,6 +24,10 @@ class TokenomiconError(Exception):
     """Base exception for all errors in the Tokenomicon library."""
 
 
+class CachePricingNotConfiguredError(TokenomiconError, ValueError):
+    """Raised when cache-write tokens are billed but no rate is configured."""
+
+
 class ConfigError(TokenomiconError):
     """Raised for configuration loading/parsing errors."""
 

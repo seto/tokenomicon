@@ -22,6 +22,7 @@ alongside the original response.
 from .api import CallResult, augur
 from .config import Config, config
 from .exceptions import (
+    CachePricingNotConfiguredError,
     ConfigError,
     InvalidCurrencyError,
     InvalidPricingError,
@@ -33,6 +34,7 @@ from .exceptions import (
 from .pricing import PricingPlan
 
 __all__ = [
+    "CachePricingNotConfiguredError",
     "CallResult",
     "Config",
     "ConfigError",
