@@ -18,12 +18,19 @@ PricingPlan holds the per-model rate (input/output cost per million
 tokens, in a given ISO 4217 currency) and computes the tribute of a call
 given its token counts.
 
-An optional cached_input_per_million rate covers
-prompt-cache reads; when unset, cached tokens are billed at the regular
-input rate rather than being discounted or ignored.
+An optional cached_input_per_million rate covers prompt-cache reads;
+when unset, cached tokens are billed at the regular input rate rather
+than being discounted or ignored.
 
-All arithmetic uses
-Decimal to avoid float rounding drift across repeated calculations.
+Optional cache_write_5m_per_million and cache_write_1h_per_million rates
+cover prompt-cache creation (Anthropic's two cache TTL tiers). Unlike
+cache reads, there is no rate fallback for cache writes: billing a write
+premium at the base input rate would silently understate the real cost,
+so tribute() raises CachePricingNotConfiguredError instead when write
+tokens are present but the corresponding rate isn't configured.
+
+All arithmetic uses Decimal to avoid float rounding drift across
+repeated calculations.
 """
 
 from dataclasses import dataclass
