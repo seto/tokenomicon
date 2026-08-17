@@ -64,6 +64,6 @@ def google_model_id() -> str:
 
 def _require_env(var_name: str) -> str:
     value = os.environ.get(var_name)
-    if not value:
+    if not value or not value.strip():
         pytest.skip(f"{var_name} not set, skipping real-provider test")
-    return value
+    return value.strip()
