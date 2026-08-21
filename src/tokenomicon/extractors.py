@@ -20,9 +20,12 @@ Where a provider reports prompt-cache reads (OpenAI's cached_tokens, Google's
 cached_content_token_count, Anthropic's cache_read_input_tokens), extractors
 report them as a separate cached_tokens count, normalizing away each
 provider's own accounting (OpenAI and Google count cached tokens as a subset
-of the input total; Anthropic already counts them separately). Cache write/
-creation tokens (e.g. Anthropic's cache_creation_input_tokens) are not
-currently extracted.
+of the input total; Anthropic already counts them separately).
+
+Anthropic's cache-write (creation) tokens are also extracted, split by TTL
+tier (cache_write_5m_tokens, cache_write_1h_tokens) from the response's
+cache_creation object. OpenAI and Google have no equivalent billable
+cache-write concept, so these are always 0 for those providers.
 
 If no extractor recognizes a response, extract_usage() returns None and
 the caller is expected to supply token counts manually.
@@ -36,6 +39,8 @@ class TokenUsage(NamedTuple):
     input_tokens: int
     output_tokens: int
     cached_tokens: int = 0
+    cache_write_5m_tokens: int = 0
+    cache_write_1h_tokens: int = 0
 
 
 def extract_usage(response: Any) -> TokenUsage | None:
@@ -79,7 +84,24 @@ def _extract_anthropic(response: Any) -> TokenUsage | None:
 
     cached_tokens = getattr(usage, "cache_read_input_tokens", None) or 0
 
-    return TokenUsage(input_tokens, output_tokens, cached_tokens)
+    cache_write_5m_tokens = 0
+    cache_write_1h_tokens = 0
+    cache_creation = getattr(usage, "cache_creation", None)
+    if cache_creation is not None:
+        cache_write_5m_tokens = (
+            getattr(cache_creation, "ephemeral_5m_input_tokens", None) or 0
+        )
+        cache_write_1h_tokens = (
+            getattr(cache_creation, "ephemeral_1h_input_tokens", None) or 0
+        )
+
+    return TokenUsage(
+        input_tokens,
+        output_tokens,
+        cached_tokens,
+        cache_write_5m_tokens,
+        cache_write_1h_tokens,
+    )
 
 
 def _extract_google(response: Any) -> TokenUsage | None:

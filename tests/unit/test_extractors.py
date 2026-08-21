@@ -62,6 +62,18 @@ class TestOpenAIExtraction:
 
         assert usage == TokenUsage(input_tokens=150, output_tokens=40, cached_tokens=0)
 
+    def test_cache_write_tokens_always_zero_for_openai(self) -> None:
+        # OpenAI has no billable cache-write concept; the fields must stay
+        # at their zero default regardless of response shape.
+        response = SimpleNamespace(
+            usage=SimpleNamespace(prompt_tokens=150, completion_tokens=40)
+        )
+
+        usage = extract_usage(response)
+
+        assert usage.cache_write_5m_tokens == 0
+        assert usage.cache_write_1h_tokens == 0
+
 
 class TestAnthropicExtraction:
     def test_extracts_usage_from_anthropic_shaped_response(self) -> None:
@@ -106,6 +118,91 @@ class TestAnthropicExtraction:
         usage = extract_usage(response)
 
         assert usage == TokenUsage(input_tokens=150, output_tokens=40, cached_tokens=0)
+
+    def test_extracts_cache_write_5m_tokens(self) -> None:
+        response = SimpleNamespace(
+            usage=SimpleNamespace(
+                input_tokens=21,
+                output_tokens=393,
+                cache_creation=SimpleNamespace(
+                    ephemeral_5m_input_tokens=148, ephemeral_1h_input_tokens=0
+                ),
+            )
+        )
+
+        usage = extract_usage(response)
+
+        assert usage == TokenUsage(
+            input_tokens=21,
+            output_tokens=393,
+            cache_write_5m_tokens=148,
+            cache_write_1h_tokens=0,
+        )
+
+    def test_extracts_cache_write_1h_tokens(self) -> None:
+        response = SimpleNamespace(
+            usage=SimpleNamespace(
+                input_tokens=21,
+                output_tokens=393,
+                cache_creation=SimpleNamespace(
+                    ephemeral_5m_input_tokens=0, ephemeral_1h_input_tokens=100
+                ),
+            )
+        )
+
+        usage = extract_usage(response)
+
+        assert usage == TokenUsage(
+            input_tokens=21,
+            output_tokens=393,
+            cache_write_1h_tokens=100,
+        )
+
+    def test_extracts_both_cache_write_tiers_simultaneously(self) -> None:
+        # Anthropic's docs show both tiers as independent counts on the
+        # same response; a single call could in principle hit both.
+        response = SimpleNamespace(
+            usage=SimpleNamespace(
+                input_tokens=21,
+                output_tokens=393,
+                cache_creation=SimpleNamespace(
+                    ephemeral_5m_input_tokens=148, ephemeral_1h_input_tokens=100
+                ),
+            )
+        )
+
+        usage = extract_usage(response)
+
+        assert usage.cache_write_5m_tokens == 148
+        assert usage.cache_write_1h_tokens == 100
+
+    def test_defaults_cache_write_tokens_to_zero_when_cache_creation_missing(
+        self,
+    ) -> None:
+        # Older SDK/API version without the cache_creation breakdown object.
+        response = SimpleNamespace(
+            usage=SimpleNamespace(input_tokens=150, output_tokens=40)
+        )
+
+        usage = extract_usage(response)
+
+        assert usage.cache_write_5m_tokens == 0
+        assert usage.cache_write_1h_tokens == 0
+
+    def test_defaults_cache_write_tokens_to_zero_when_fields_missing_within_cache_creation(
+        self,
+    ) -> None:
+        # cache_creation present but empty/partial (e.g. a stripped-down mock).
+        response = SimpleNamespace(
+            usage=SimpleNamespace(
+                input_tokens=150, output_tokens=40, cache_creation=SimpleNamespace()
+            )
+        )
+
+        usage = extract_usage(response)
+
+        assert usage.cache_write_5m_tokens == 0
+        assert usage.cache_write_1h_tokens == 0
 
 
 class TestGoogleExtraction:
@@ -167,6 +264,18 @@ class TestGoogleExtraction:
         usage = extract_usage(response)
 
         assert usage == TokenUsage(input_tokens=150, output_tokens=40, cached_tokens=0)
+
+    def test_cache_write_tokens_always_zero_for_google(self) -> None:
+        response = SimpleNamespace(
+            usage_metadata=SimpleNamespace(
+                prompt_token_count=150, candidates_token_count=40
+            )
+        )
+
+        usage = extract_usage(response)
+
+        assert usage.cache_write_5m_tokens == 0
+        assert usage.cache_write_1h_tokens == 0
 
 
 class TestUnrecognizedResponses:
