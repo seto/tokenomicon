@@ -5,7 +5,11 @@ import pytest
 
 from tokenomicon.api import CallResult, augur
 from tokenomicon.config import Config
-from tokenomicon.exceptions import ModelNotConfiguredError, TokenExtractionWarning
+from tokenomicon.exceptions import (
+    CachePricingNotConfiguredError,
+    ModelNotConfiguredError,
+    TokenExtractionWarning,
+)
 from tokenomicon.pricing import PricingPlan
 
 
@@ -240,3 +244,122 @@ class TestAugurCachedTokens:
             outcome = call_unknown()
 
         assert outcome.cached_tokens is None
+
+
+class TestAugurCacheWriteTokens:
+    def test_cache_write_tokens_included_in_call_result(self, monkeypatch) -> None:
+        cfg = Config()
+        cfg.register(
+            PricingPlan(
+                model="claude-sonnet-5",
+                input_per_million=Decimal("3.00"),
+                output_per_million=Decimal("15.00"),
+                cache_write_5m_per_million=Decimal("3.75"),
+                cache_write_1h_per_million=Decimal("6.00"),
+            )
+        )
+        monkeypatch.setattr("tokenomicon.api.config", cfg)
+
+        @augur(model="claude-sonnet-5")
+        def call_llm() -> SimpleNamespace:
+            return SimpleNamespace(
+                usage=SimpleNamespace(
+                    input_tokens=100,
+                    output_tokens=50,
+                    cache_creation=SimpleNamespace(
+                        ephemeral_5m_input_tokens=200, ephemeral_1h_input_tokens=300
+                    ),
+                )
+            )
+
+        outcome = call_llm()
+
+        assert outcome.cache_write_5m_tokens == 200
+        assert outcome.cache_write_1h_tokens == 300
+
+    def test_cache_write_tokens_billed_at_configured_rates(self, monkeypatch) -> None:
+        cfg = Config()
+        cfg.register(
+            PricingPlan(
+                model="claude-sonnet-5",
+                input_per_million=Decimal("3.00"),
+                output_per_million=Decimal("15.00"),
+                cache_write_5m_per_million=Decimal("3.75"),
+                cache_write_1h_per_million=Decimal("6.00"),
+            )
+        )
+        monkeypatch.setattr("tokenomicon.api.config", cfg)
+
+        @augur(model="claude-sonnet-5")
+        def call_llm() -> SimpleNamespace:
+            return SimpleNamespace(
+                usage=SimpleNamespace(
+                    input_tokens=0,
+                    output_tokens=0,
+                    cache_creation=SimpleNamespace(
+                        ephemeral_5m_input_tokens=1_000_000,
+                        ephemeral_1h_input_tokens=1_000_000,
+                    ),
+                )
+            )
+
+        outcome = call_llm()
+
+        assert outcome.tribute == Decimal("3.75") + Decimal("6.00")
+
+    def test_cache_write_tokens_default_to_zero_when_not_reported(
+        self, cfg: Config
+    ) -> None:
+        @augur(model="claude-sonnet-5")
+        def call_llm() -> SimpleNamespace:
+            return SimpleNamespace(
+                usage=SimpleNamespace(input_tokens=100, output_tokens=50)
+            )
+
+        outcome = call_llm()
+
+        assert outcome.cache_write_5m_tokens == 0
+        assert outcome.cache_write_1h_tokens == 0
+
+    def test_cache_write_tokens_zero_when_manual_tokens_used(self, cfg: Config) -> None:
+        @augur(
+            model="claude-sonnet-5",
+            manual_tokens=lambda r: (r["prompt_len"], r["gen_len"]),
+        )
+        def call_local() -> dict:
+            return {"prompt_len": 200, "gen_len": 100}
+
+        outcome = call_local()
+
+        assert outcome.cache_write_5m_tokens == 0
+        assert outcome.cache_write_1h_tokens == 0
+
+    def test_cache_write_tokens_none_when_extraction_fails(self, cfg: Config) -> None:
+        @augur(model="claude-sonnet-5")
+        def call_unknown() -> dict:
+            return {"unexpected": "shape"}
+
+        with pytest.warns(TokenExtractionWarning):
+            outcome = call_unknown()
+
+        assert outcome.cache_write_5m_tokens is None
+        assert outcome.cache_write_1h_tokens is None
+
+    def test_raises_cache_pricing_not_configured_when_rate_missing(
+        self, cfg: Config
+    ) -> None:
+        # `cfg` fixture registers claude-sonnet-5 without cache-write rates.
+        @augur(model="claude-sonnet-5")
+        def call_llm() -> SimpleNamespace:
+            return SimpleNamespace(
+                usage=SimpleNamespace(
+                    input_tokens=100,
+                    output_tokens=50,
+                    cache_creation=SimpleNamespace(
+                        ephemeral_5m_input_tokens=200, ephemeral_1h_input_tokens=0
+                    ),
+                )
+            )
+
+        with pytest.raises(CachePricingNotConfiguredError, match="claude-sonnet-5"):
+            call_llm()

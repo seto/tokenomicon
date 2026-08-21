@@ -42,6 +42,8 @@ class CallResult:
     input_tokens: int | None
     output_tokens: int | None
     cached_tokens: int | None
+    cache_write_5m_tokens: int | None
+    cache_write_1h_tokens: int | None
     currency: str | None
 
 
@@ -66,11 +68,15 @@ def augur(
 
             usage = extract_usage(result)
             cached_tokens = 0
+            cache_write_5m_tokens = 0
+            cache_write_1h_tokens = 0
             if usage is None and manual_tokens is not None:
                 input_tokens, output_tokens = manual_tokens(result)
                 usage = (input_tokens, output_tokens)
             elif usage is not None:
                 cached_tokens = usage.cached_tokens
+                cache_write_5m_tokens = usage.cache_write_5m_tokens
+                cache_write_1h_tokens = usage.cache_write_1h_tokens
 
             if usage is None:
                 warnings.warn(
@@ -86,12 +92,20 @@ def augur(
                     input_tokens=None,
                     output_tokens=None,
                     cached_tokens=None,
+                    cache_write_5m_tokens=None,
+                    cache_write_1h_tokens=None,
                     currency=None,
                 )
 
             input_tokens, output_tokens = usage[0], usage[1]
             plan = config.get(model)
-            tribute = plan.tribute(input_tokens, output_tokens, cached_tokens)
+            tribute = plan.tribute(
+                input_tokens,
+                output_tokens,
+                cached_tokens,
+                cache_write_5m_tokens,
+                cache_write_1h_tokens,
+            )
 
             return CallResult(
                 result=result,
@@ -99,6 +113,8 @@ def augur(
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
                 cached_tokens=cached_tokens,
+                cache_write_5m_tokens=cache_write_5m_tokens,
+                cache_write_1h_tokens=cache_write_1h_tokens,
                 currency=plan.currency,
             )
 
