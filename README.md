@@ -128,8 +128,23 @@ matching how the token counts are reported back to `tribute()` and `CallResult`.
 
 Extraction is automatic wherever the provider reports it: OpenAI's `cached_tokens`,
 Anthropic's `cache_read_input_tokens`, and Google's `cached_content_token_count` are all
-recognized. Cache _write_ costs (e.g. Anthropic's cache creation premium) aren't tracked
-yet — see [Not yet supported](#not-yet-supported).
+recognized.
+
+**Cache writes** (Anthropic-only, the premium paid to populate the cache) are also
+supported, split by TTL tier:
+
+```toml
+[claude-sonnet-5]
+input_per_million = "3.00"
+output_per_million = "15.00"
+cache_write_5m_per_million = "3.75"
+cache_write_1h_per_million = "6.00"
+```
+
+Unlike cache reads, there's no rate fallback for cache writes: billing a write premium
+at the base input rate would silently understate the real cost. If Anthropic reports
+cache-write tokens for either tier and the corresponding rate isn't configured,
+`tribute()` raises `CachePricingNotConfiguredError` instead of guessing.
 
 ## The `augur` decorator
 
@@ -145,6 +160,8 @@ class CallResult:
     input_tokens: int | None
     output_tokens: int | None
     cached_tokens: int | None  # tokens served from a prompt cache, 0 if none
+    cache_write_5m_tokens: int | None  # Anthropic-only, 5-minute cache TTL tier
+    cache_write_1h_tokens: int | None  # Anthropic-only, 1-hour cache TTL tier
     currency: str | None
 ```
 
@@ -191,13 +208,14 @@ guessing.
 
 All exceptions inherit from `TokenomiconError`:
 
-| Exception                 | Raised when                                                                                  |
-| ------------------------- | -------------------------------------------------------------------------------------------- |
-| `ModelNotConfiguredError` | The requested model isn't registered in `Config`.                                            |
-| `InvalidCurrencyError`    | `currency` isn't a valid ISO 4217 code.                                                      |
-| `InvalidPricingError`     | A rate is negative or otherwise invalid.                                                     |
-| `NegativeTokenCountError` | A token count passed to `.tribute()` is negative.                                            |
-| `ConfigError`             | TOML parsing fails, a field is missing, or an env var referenced via `expand_env` isn't set. |
+| Exception                        | Raised when                                                                                  |
+| -------------------------------- | -------------------------------------------------------------------------------------------- |
+| `ModelNotConfiguredError`        | The requested model isn't registered in `Config`.                                            |
+| `InvalidCurrencyError`           | `currency` isn't a valid ISO 4217 code.                                                      |
+| `InvalidPricingError`            | A rate is negative or otherwise invalid.                                                     |
+| `NegativeTokenCountError`        | A token count passed to `.tribute()` is negative.                                            |
+| `CachePricingNotConfiguredError` | Cache-write tokens are present but the corresponding rate isn't configured.                  |
+| `ConfigError`                    | TOML parsing fails, a field is missing, or an env var referenced via `expand_env` isn't set. |
 
 `TokenExtractionWarning` is a `UserWarning`, not an exception: it doesn't interrupt the
 call, it only signals that the tribute couldn't be determined.
@@ -210,8 +228,6 @@ call, it only signals that the tribute couldn't be determined.
 
 ## Not yet supported
 
-- **Prompt cache writes** (e.g. Anthropic's cache-creation premium pricing). Cache
-  _reads_ are supported; see [Prompt caching](#prompt-caching).
 - **Cost accumulation / ledger** across multiple calls. Tokenomicon deliberately stays
   per-call; aggregate however fits your own storage.
 
