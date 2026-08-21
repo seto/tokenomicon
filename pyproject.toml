@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tokenomicon"
-version = "0.2.0"
+version = "0.3.0"
 description = "Post-hoc financial divination tool for LLM hunger and budget dread."
 readme = "README.md"
 authors = [{ name="seto" }]

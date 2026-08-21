@@ -1,5 +1,20 @@
 # Changelog
 
+## Version 0.3.0
+
+### Cache Write Rates
+
+## Version 0.3.0
+
+- Added prompt cache write pricing (Anthropic-only):
+  `PricingPlancache_write_5m_per_million` and `cache_write_1h_per_million` price the two
+  cache-creation TTL tiers, extracted automatically from Anthropic's `cache_creation`
+  response field. Unlike cache reads, there's no rate fallback for writes: `tribute()`
+  raises the new `CachePricingNotConfiguredError` if write tokens are present but the
+  matching rate isn't configured, rather than silently understating the cost.
+  `CallResult` now exposes `cache_write_5m_tokens` and `cache_write_1h_tokens` alongside
+  the existing token counts.
+
 ## Version 0.2.0
 
 ### Prompt Caching
