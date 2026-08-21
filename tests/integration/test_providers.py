@@ -5,12 +5,16 @@ not just hand-built SimpleNamespace fixtures. Uses the cheapest
 available model per provider and a one-token prompt to keep any real
 spend negligible.
 
-Prompt caching is exercised only at the unit-test level (deterministic
-SimpleNamespace fixtures). Forcing a real cache hit here would require
+Prompt caching (both reads and Anthropic's cache-write tiers) is
+exercised only at the unit-test level (deterministic SimpleNamespace
+fixtures). Forcing a real cache hit or cache write here would require
 padding requests to each provider's minimum cacheable size and is
 best-effort on the provider side (not guaranteed per-request), which
-would make this test suite flaky without adding real coverage
-of tokenomicon's own logic.
+would make this pre-release suite flaky without adding real coverage
+of tokenomicon's own logic. The registered test plans below
+deliberately omit cache_write_5m_per_million / cache_write_1h_per_million:
+since these "ping" calls never trigger a real cache write, the write
+token counts stay at 0 and tribute() never needs those rates.
 """
 
 from decimal import Decimal
@@ -71,6 +75,14 @@ class TestOpenAI:
         assert outcome.input_tokens is not None and outcome.input_tokens > 0
         assert outcome.output_tokens is not None and outcome.output_tokens > 0
         assert outcome.cached_tokens is not None and outcome.cached_tokens >= 0
+        assert (
+            outcome.cache_write_5m_tokens is not None
+            and outcome.cache_write_5m_tokens >= 0
+        )
+        assert (
+            outcome.cache_write_1h_tokens is not None
+            and outcome.cache_write_1h_tokens >= 0
+        )
 
 
 @pytest.mark.skip(reason="Placeholder test alternative for OpenAI calls")
@@ -98,6 +110,14 @@ class TestOpenAIViaOpenRouter:
         assert outcome.input_tokens is not None and outcome.input_tokens > 0
         assert outcome.output_tokens is not None and outcome.output_tokens > 0
         assert outcome.cached_tokens is not None and outcome.cached_tokens >= 0
+        assert (
+            outcome.cache_write_5m_tokens is not None
+            and outcome.cache_write_5m_tokens >= 0
+        )
+        assert (
+            outcome.cache_write_1h_tokens is not None
+            and outcome.cache_write_1h_tokens >= 0
+        )
 
 
 class TestAnthropic:
@@ -122,6 +142,14 @@ class TestAnthropic:
         assert outcome.input_tokens is not None and outcome.input_tokens > 0
         assert outcome.output_tokens is not None and outcome.output_tokens > 0
         assert outcome.cached_tokens is not None and outcome.cached_tokens >= 0
+        assert (
+            outcome.cache_write_5m_tokens is not None
+            and outcome.cache_write_5m_tokens >= 0
+        )
+        assert (
+            outcome.cache_write_1h_tokens is not None
+            and outcome.cache_write_1h_tokens >= 0
+        )
 
 
 class TestGoogle:
@@ -145,3 +173,11 @@ class TestGoogle:
         assert outcome.input_tokens is not None and outcome.input_tokens > 0
         assert outcome.output_tokens is not None and outcome.output_tokens > 0
         assert outcome.cached_tokens is not None and outcome.cached_tokens >= 0
+        assert (
+            outcome.cache_write_5m_tokens is not None
+            and outcome.cache_write_5m_tokens >= 0
+        )
+        assert (
+            outcome.cache_write_1h_tokens is not None
+            and outcome.cache_write_1h_tokens >= 0
+        )
