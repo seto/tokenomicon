@@ -65,13 +65,25 @@ class Config:
                     if "cached_input_per_million" in rates
                     else None
                 )
+                cache_write_5m_per_million = (
+                    Decimal(str(rates["cache_write_5m_per_million"]))
+                    if "cache_write_5m_per_million" in rates
+                    else None
+                )
+                cache_write_1h_per_million = (
+                    Decimal(str(rates["cache_write_1h_per_million"]))
+                    if "cache_write_1h_per_million" in rates
+                    else None
+                )
 
             except InvalidOperation:
                 raise ConfigError(
                     f"Invalid numeric value for model '{model}': "
                     f"input={rates.get('input_per_million')!r}, "
                     f"output={rates.get('output_per_million')!r}, "
-                    f"cached_input={rates.get('cached_input_per_million')!r}"
+                    f"cached_input={rates.get('cached_input_per_million')!r}, "
+                    f"cache_write_5m={rates.get('cache_write_5m_per_million')!r}, "
+                    f"cache_write_1h={rates.get('cache_write_1h_per_million')!r}"
                 ) from None
 
             except KeyError as exc:
@@ -86,6 +98,8 @@ class Config:
                     output_per_million=output_per_million,
                     currency=rates.get("currency", "USD"),
                     cached_input_per_million=cached_input_per_million,
+                    cache_write_5m_per_million=cache_write_5m_per_million,
+                    cache_write_1h_per_million=cache_write_1h_per_million,
                 )
             )
 

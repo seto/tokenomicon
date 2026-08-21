@@ -203,6 +203,61 @@ class TestConfigLoadToml:
         with pytest.raises(ConfigError, match="claude-sonnet-5"):
             cfg.load_toml(toml_file)
 
+    def test_load_toml_with_cache_write_rates(self, tmp_path) -> None:
+        toml_file = tmp_path / "pricing.toml"
+        toml_file.write_text(
+            """
+            [claude-sonnet-5]
+            input_per_million = "3.00"
+            output_per_million = "15.00"
+            cache_write_5m_per_million = "3.75"
+            cache_write_1h_per_million = "6.00"
+            """
+        )  # fmt: skip
+
+        cfg = Config()
+        cfg.load_toml(toml_file)
+
+        plan = cfg.get("claude-sonnet-5")
+        assert plan.cache_write_5m_per_million == Decimal("3.75")
+        assert plan.cache_write_1h_per_million == Decimal("6.00")
+
+    def test_load_toml_without_cache_write_rates_defaults_to_none(
+        self, tmp_path
+    ) -> None:
+        toml_file = tmp_path / "pricing.toml"
+        toml_file.write_text(
+            """
+            [claude-sonnet-5]
+            input_per_million = "3.00"
+            output_per_million = "15.00"
+            """
+        )  # fmt: skip
+
+        cfg = Config()
+        cfg.load_toml(toml_file)
+
+        plan = cfg.get("claude-sonnet-5")
+        assert plan.cache_write_5m_per_million is None
+        assert plan.cache_write_1h_per_million is None
+
+    def test_load_toml_invalid_cache_write_numeric_value_raises_config_error(
+        self, tmp_path
+    ) -> None:
+        toml_file = tmp_path / "pricing.toml"
+        toml_file.write_text(
+            """
+            [claude-sonnet-5]
+            input_per_million = "3.00"
+            output_per_million = "15.00"
+            cache_write_5m_per_million = "not-a-number"
+            """
+        )  # fmt: skip
+
+        cfg = Config()
+        with pytest.raises(ConfigError, match="claude-sonnet-5"):
+            cfg.load_toml(toml_file)
+
 
 class TestConfigExpandEnv:
     def test_expand_env_substitutes_variable(self, tmp_path, monkeypatch) -> None:
