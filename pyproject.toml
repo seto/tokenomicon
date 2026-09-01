@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools~=83.0", "wheel"]
+requires = ["setuptools>=83,<85", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -32,16 +32,16 @@ dev = [
     "black~=26.5",
     "build~=1.5",
     "invoke~=3.0",
-    "isort~=8.0",
+    "isort>=8,<10",
     "pytest~=9.1",
     "pytest-cov~=7.1",
     "ruff~=0.16",
     "twine>=6.2,<8.0"
 ]
 integration = [
-    "anthropic~=0.117",
+    "anthropic>=0.117,<2.0",
     "google-genai~=2.12",
-    "openai~=2.46",
+    "openai>=2.46,<4.0",
     "python-dotenv~=1.2",
 ]
 
