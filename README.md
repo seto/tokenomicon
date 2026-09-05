@@ -127,8 +127,8 @@ matching how the token counts are reported back to `tribute()` and `CallResult`.
 — no discount, but nothing lost or silently dropped either.
 
 Extraction is automatic wherever the provider reports it: OpenAI's `cached_tokens`,
-Anthropic's `cache_read_input_tokens`, and Google's `cached_content_token_count` are all
-recognized.
+Anthropic's `cache_read_input_tokens`, Google's `cached_content_token_count`, and
+DeepSeek's `prompt_cache_hit_tokens` are all recognized.
 
 **Cache writes** (Anthropic-only, the premium paid to populate the cache) are also
 supported, split by TTL tier:
@@ -181,9 +181,10 @@ def call():
     )
 ```
 
-The same works out of the box for `anthropic` and `google-genai` clients; Tokenomicon
-recognizes their respective `usage` / `usage_metadata` shapes without any extra
-configuration.
+The same works out of the box for `anthropic`, `google-genai`, and `mistralai` clients;
+Tokenomicon recognizes their respective `usage` / `usage_metadata` shapes without any
+extra configuration. DeepSeek is also recognized automatically when used via its
+OpenAI-compatible endpoint (including cache-read token accounting).
 
 ### Fallback for unrecognized responses
 

@@ -1,17 +1,27 @@
 # Changelog
 
+## Version 0.4.0
+
+### Supported Providers
+
+- Add DeepSeek support: token usage (including cache-read accounting via
+  `prompt_cache_hit_tokens`) is extracted automatically from DeepSeek's
+  OpenAI-compatible response shape.
+- Add Mistral support: recognized automatically, since Mistral's response shape is
+  currently identical to OpenAI's.
+
 ## Version 0.3.0
 
 ### Cache Write Rates
 
 - Added prompt cache write pricing (Anthropic-only):
-  `PricingPlan.cache_write_5m_per_million` and `cache_write_1h_per_million` price the two
-  cache-creation TTL tiers, extracted automatically from Anthropic's `cache_creation`
-  response field. Unlike cache reads, there's no rate fallback for writes: `tribute()`
-  raises the new `CachePricingNotConfiguredError` if write tokens are present but the
-  matching rate isn't configured, rather than silently understating the cost.
-  `CallResult` now exposes `cache_write_5m_tokens` and `cache_write_1h_tokens` alongside
-  the existing token counts.
+  `PricingPlan.cache_write_5m_per_million` and `cache_write_1h_per_million` price the
+  two cache-creation TTL tiers, extracted automatically from Anthropic's
+  `cache_creation` response field. Unlike cache reads, there's no rate fallback for
+  writes: `tribute()` raises the new `CachePricingNotConfiguredError` if write tokens
+  are present but the matching rate isn't configured, rather than silently understating
+  the cost. `CallResult` now exposes `cache_write_5m_tokens` and `cache_write_1h_tokens`
+  alongside the existing token counts.
 
 ## Version 0.2.0
 
