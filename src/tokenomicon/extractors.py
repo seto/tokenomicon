@@ -119,8 +119,33 @@ def _extract_google(response: Any) -> TokenUsage | None:
     return TokenUsage(input_tokens - cached_tokens, output_tokens, cached_tokens)
 
 
-# Tried in order, most common provider first
+def _extract_deepseek(response: Any) -> TokenUsage | None:
+    usage = getattr(response, "usage", None)
+    if usage is None:
+        return None
+
+    input_tokens = getattr(usage, "prompt_tokens", None)
+    output_tokens = getattr(usage, "completion_tokens", None)
+    if input_tokens is None or output_tokens is None:
+        return None
+
+    # prompt_cache_hit_tokens is DeepSeek-specific: its absence means this
+    # is a plain OpenAI-shaped response (or another OpenAI-compatible
+    # provider without cache reporting), so we yield to _extract_openai
+    # rather than claiming a match with cached_tokens always at 0.
+    cache_hit_tokens = getattr(usage, "prompt_cache_hit_tokens", None)
+    if cache_hit_tokens is None:
+        return None
+
+    return TokenUsage(input_tokens - cache_hit_tokens, output_tokens, cache_hit_tokens)
+
+
+# DeepSeek is tried before OpenAI: both report prompt_tokens/completion_tokens,
+# but only DeepSeek's response includes prompt_cache_hit_tokens. Trying OpenAI
+# first would match DeepSeek responses too (silently losing cache-read data),
+# so specificity takes priority over provider popularity here.
 _EXTRACTORS: tuple[Callable[[Any], TokenUsage | None], ...] = (
+    _extract_deepseek,
     _extract_openai,
     _extract_anthropic,
     _extract_google,

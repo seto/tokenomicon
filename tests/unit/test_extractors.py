@@ -74,6 +74,33 @@ class TestOpenAIExtraction:
         assert usage.cache_write_5m_tokens == 0
         assert usage.cache_write_1h_tokens == 0
 
+    def test_openai_shape_without_deepseek_cache_field_not_claimed_by_deepseek(
+        self,
+    ) -> None:
+        # A genuine OpenAI response (no prompt_cache_hit_tokens) must fall
+        # through _extract_deepseek and be resolved by _extract_openai,
+        # not be misidentified or dropped.
+        response = SimpleNamespace(
+            usage=SimpleNamespace(prompt_tokens=150, completion_tokens=40)
+        )
+
+        usage = extract_usage(response)
+
+        assert usage == TokenUsage(input_tokens=150, output_tokens=40)
+
+    def test_mistral_shaped_response_recognized_via_shared_extractor(self) -> None:
+        # Mistral's usage object is currently identical in shape to OpenAI's;
+        # this documents that fact so a future divergence (which would need
+        # its own _extract_mistral) shows up here as a failing assumption,
+        # not a silent gap.
+        response = SimpleNamespace(
+            usage=SimpleNamespace(prompt_tokens=137, completion_tokens=914)
+        )
+
+        usage = extract_usage(response)
+
+        assert usage == TokenUsage(input_tokens=137, output_tokens=914)
+
 
 class TestAnthropicExtraction:
     def test_extracts_usage_from_anthropic_shaped_response(self) -> None:
@@ -276,6 +303,56 @@ class TestGoogleExtraction:
 
         assert usage.cache_write_5m_tokens == 0
         assert usage.cache_write_1h_tokens == 0
+
+
+class TestDeepSeekExtraction:
+    def test_extracts_usage_from_deepseek_shaped_response(self) -> None:
+        response = SimpleNamespace(
+            usage=SimpleNamespace(
+                prompt_tokens=150,
+                completion_tokens=40,
+                prompt_cache_hit_tokens=0,
+                prompt_cache_miss_tokens=150,
+            )
+        )
+
+        usage = extract_usage(response)
+
+        assert usage == TokenUsage(input_tokens=150, output_tokens=40, cached_tokens=0)
+
+    def test_extracts_cached_tokens_and_subtracts_from_input(self) -> None:
+        # prompt_tokens (150) = prompt_cache_hit_tokens (100) + prompt_cache_miss_tokens (50),
+        # matching DeepSeek's own documented invariant.
+        response = SimpleNamespace(
+            usage=SimpleNamespace(
+                prompt_tokens=150,
+                completion_tokens=40,
+                prompt_cache_hit_tokens=100,
+                prompt_cache_miss_tokens=50,
+            )
+        )
+
+        usage = extract_usage(response)
+
+        assert usage == TokenUsage(input_tokens=50, output_tokens=40, cached_tokens=100)
+
+    def test_tried_before_openai_extractor_for_deepseek_shaped_response(self) -> None:
+        # Both extractors could technically match (prompt_tokens/completion_tokens
+        # are present in both), but only the DeepSeek-specific field must decide
+        # which one actually claims the response — and it must claim it with
+        # the cache-read data intact, not just fall through to OpenAI's shape.
+        response = SimpleNamespace(
+            usage=SimpleNamespace(
+                prompt_tokens=150,
+                completion_tokens=40,
+                prompt_cache_hit_tokens=100,
+                prompt_cache_miss_tokens=50,
+            )
+        )
+
+        usage = extract_usage(response)
+
+        assert usage.cached_tokens == 100
 
 
 class TestUnrecognizedResponses:
