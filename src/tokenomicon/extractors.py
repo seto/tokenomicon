@@ -54,7 +54,7 @@ def extract_usage(response: Any) -> TokenUsage | None:
     return None
 
 
-def _extract_openai(response: Any) -> TokenUsage | None:
+def _extract_openai_compatible(response: Any) -> TokenUsage | None:
     usage = getattr(response, "usage", None)
     if usage is None:
         return None
@@ -131,7 +131,7 @@ def _extract_deepseek(response: Any) -> TokenUsage | None:
 
     # prompt_cache_hit_tokens is DeepSeek-specific: its absence means this
     # is a plain OpenAI-shaped response (or another OpenAI-compatible
-    # provider without cache reporting), so we yield to _extract_openai
+    # provider without cache reporting), so we yield to _extract_openai_compatible
     # rather than claiming a match with cached_tokens always at 0.
     cache_hit_tokens = getattr(usage, "prompt_cache_hit_tokens", None)
     if cache_hit_tokens is None:
@@ -146,7 +146,7 @@ def _extract_deepseek(response: Any) -> TokenUsage | None:
 # so specificity takes priority over provider popularity here.
 _EXTRACTORS: tuple[Callable[[Any], TokenUsage | None], ...] = (
     _extract_deepseek,
-    _extract_openai,
+    _extract_openai_compatible,
     _extract_anthropic,
     _extract_google,
 )
