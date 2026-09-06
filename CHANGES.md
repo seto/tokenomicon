@@ -1,5 +1,19 @@
 # Changelog
 
+## Version 0.5.0
+
+### Async Support
+
+- Add async/await support to `augur`: functions decorated with `async def` are now
+  properly awaited and resolve to a `CallResult`, instead of silently returning an
+  unresolved coroutine (previously, decorating an async function produced a `CallResult`
+  wrapping the coroutine itself, never executing it). Sync functions are unaffected.
+  Overloaded type hints let static type checkers correctly infer `await decorated()` on
+  async-decorated functions.
+- Add `Config.aload_toml()`, a non-blocking async twin of `load_toml()`: same signature
+  and behavior, offloaded to a thread via `asyncio.to_thread` so it doesn't block the
+  event loop when called from async code.
+
 ## Version 0.4.0
 
 ### Supported Providers

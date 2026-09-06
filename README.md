@@ -92,6 +92,16 @@ currency = "EUR"
 An unregistered model raises `ModelNotConfiguredError`: Tokenomicon never falls back to
 a bundled "market price."
 
+> [!NOTE] `load_toml()` performs synchronous file I/O and TOML parsing. In an async
+> application, call it once at startup (before the event loop is driving request
+> handling), not on every request. If you need to reload pricing at runtime from inside
+> async code, use `aload_toml()` instead — same signature, same behavior, offloaded to a
+> thread so it doesn't block the event loop:
+>
+> ```python
+> await config.aload_toml("pricing.toml")
+> ```
+
 ### Environment variable expansion
 
 `${VAR_NAME}` patterns in the TOML file are left untouched by default. Opt in explicitly
@@ -178,6 +188,19 @@ def call():
         model="gpt-5.4-mini",
         messages=[{"role": "user", "content": "hi"}],
     )
+```
+
+Or, if you need to use async code:
+
+```python
+@augur(model="gpt-5.4-mini")
+async def call_llm(prompt: str):
+    return await your_async_llm_client.chat.completions.create(
+        model="gpt-5.4-mini",
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+outcome = await call_llm("hi")
 ```
 
 The same works out of the box for `anthropic`, `google-genai`, and `mistralai` clients;
