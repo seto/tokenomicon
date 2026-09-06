@@ -22,6 +22,7 @@ redeploying the application. A module-level `config` singleton is
 provided for the common case of one registry per process.
 """
 
+import asyncio
 import os
 import re
 import tomllib
@@ -102,6 +103,17 @@ class Config:
                     cache_write_1h_per_million=cache_write_1h_per_million,
                 )
             )
+
+    async def aload_toml(self, path: str | Path, *, expand_env: bool = False) -> None:
+        """Async twin of load_toml(), for use inside an event loop.
+
+        Offloads the synchronous file read and TOML parsing to a thread via
+        asyncio.to_thread, so it doesn't block the event loop. Delegates
+        entirely to load_toml(): same behavior, same exceptions, same
+        registered plans, just non-blocking when awaited from async code.
+        """
+
+        await asyncio.to_thread(self.load_toml, path, expand_env=expand_env)
 
     def get(self, model: str) -> PricingPlan:
         try:

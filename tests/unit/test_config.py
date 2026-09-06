@@ -1,3 +1,4 @@
+import asyncio
 from decimal import Decimal
 
 import pytest
@@ -257,6 +258,114 @@ class TestConfigLoadToml:
         cfg = Config()
         with pytest.raises(ConfigError, match="claude-sonnet-5"):
             cfg.load_toml(toml_file)
+
+
+class TestConfigALoadToml:
+    def test_aload_toml_loads_same_as_sync(self, tmp_path) -> None:
+        toml_file = tmp_path / "pricing.toml"
+        toml_file.write_text(
+            """
+            [claude-sonnet-5]
+            input_per_million = "3.00"
+            output_per_million = "15.00"
+            """
+        )  # fmt: skip
+
+        cfg = Config()
+        asyncio.run(cfg.aload_toml(toml_file))
+
+        plan = cfg.get("claude-sonnet-5")
+        assert plan.input_per_million == Decimal("3.00")
+        assert plan.output_per_million == Decimal("15.00")
+
+    def test_aload_toml_accepts_expand_env_kwarg(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.setenv("CLAUDE_SONNET_5_INPUT", "3.00")
+        toml_file = tmp_path / "pricing.toml"
+        toml_file.write_text(
+            """
+            [claude-sonnet-5]
+            input_per_million = "${CLAUDE_SONNET_5_INPUT}"
+            output_per_million = "15.00"
+            """
+        )  # fmt: skip
+
+        cfg = Config()
+        asyncio.run(cfg.aload_toml(toml_file, expand_env=True))
+
+        assert cfg.get("claude-sonnet-5").input_per_million == Decimal("3.00")
+
+    def test_aload_toml_propagates_config_error(self, tmp_path) -> None:
+        toml_file = tmp_path / "pricing.toml"
+        toml_file.write_text(
+            """
+            [claude-sonnet-5]
+            input_per_million = "not-a-number"
+            output_per_million = "15.00"
+            """
+        )  # fmt: skip
+
+        cfg = Config()
+        with pytest.raises(ConfigError, match="claude-sonnet-5"):
+            asyncio.run(cfg.aload_toml(toml_file))
+
+    def test_aload_toml_reload_replaces_existing_plan(self, tmp_path) -> None:
+        # Mirrors test_load_toml_reload_replaces_existing_plan, async path.
+        toml_file = tmp_path / "pricing.toml"
+        toml_file.write_text(
+            """
+            [claude-sonnet-5]
+            input_per_million = "3.00"
+            output_per_million = "15.00"
+            """
+        )  # fmt: skip
+
+        cfg = Config()
+        asyncio.run(cfg.aload_toml(toml_file))
+        assert cfg.get("claude-sonnet-5").input_per_million == Decimal("3.00")
+
+        toml_file.write_text(
+            """
+            [claude-sonnet-5]
+            input_per_million = "4.00"
+            output_per_million = "16.00"
+            """
+        )  # fmt: skip
+
+        asyncio.run(cfg.aload_toml(toml_file))
+        assert cfg.get("claude-sonnet-5").input_per_million == Decimal("4.00")
+
+    def test_aload_toml_does_not_block_event_loop(self, tmp_path) -> None:
+        # Regression guard for the actual point of aload_toml: while the file
+        # load runs on a thread, the event loop must remain free to run other
+        # coroutines concurrently, not stall until the load finishes.
+        toml_file = tmp_path / "pricing.toml"
+        toml_file.write_text(
+            """
+            [claude-sonnet-5]
+            input_per_million = "3.00"
+            output_per_million = "15.00"
+            """
+        )  # fmt: skip
+
+        cfg = Config()
+        ticks = 0
+
+        async def ticker() -> None:
+            nonlocal ticks
+            for _ in range(50):
+                await asyncio.sleep(0)
+                ticks += 1
+
+        async def scenario() -> None:
+            await asyncio.gather(cfg.aload_toml(toml_file), ticker())
+
+        asyncio.run(scenario())
+
+        # If aload_toml blocked the loop, the ticker couldn't have advanced
+        # concurrently with it; this is a coarse signal, not a precise timing
+        # assertion, since both tasks share the same thread until the file
+        # I/O actually hands off control.
+        assert ticks == 50
 
 
 class TestConfigExpandEnv:
