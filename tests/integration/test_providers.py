@@ -50,6 +50,21 @@ def cfg(monkeypatch) -> Config:
             output_per_million=Decimal("9.00"),
         )
     )
+    test_config.register(
+        PricingPlan(
+            model="deepseek-test-model",
+            input_per_million=Decimal("0.14"),
+            output_per_million=Decimal("0.28"),
+            cached_input_per_million=Decimal("0.014"),
+        )
+    )
+    test_config.register(
+        PricingPlan(
+            model="mistral-test-model",
+            input_per_million=Decimal("0.04"),
+            output_per_million=Decimal("0.04"),
+        )
+    )
     monkeypatch.setattr("tokenomicon.api.config", test_config)
     return test_config
 
@@ -164,6 +179,73 @@ class TestGoogle:
             return client.models.generate_content(
                 model=google_model_id,
                 contents="hi",
+            )
+
+        outcome = call()
+
+        assert outcome.tribute is not None
+        assert outcome.tribute > Decimal(0)
+        assert outcome.input_tokens is not None and outcome.input_tokens > 0
+        assert outcome.output_tokens is not None and outcome.output_tokens > 0
+        assert outcome.cached_tokens is not None and outcome.cached_tokens >= 0
+        assert (
+            outcome.cache_write_5m_tokens is not None
+            and outcome.cache_write_5m_tokens >= 0
+        )
+        assert (
+            outcome.cache_write_1h_tokens is not None
+            and outcome.cache_write_1h_tokens >= 0
+        )
+
+
+@pytest.mark.skip(reason="Requires a funded DeepSeek account; adjust as needed")
+class TestDeepSeek:
+    def test_deepseek_call_extracts_usage(
+        self, deepseek_api_key, deepseek_model_id, cfg
+    ) -> None:
+        openai = pytest.importorskip("openai")
+        client = openai.OpenAI(
+            api_key=deepseek_api_key, base_url="https://api.deepseek.com"
+        )
+
+        @augur(model="deepseek-test-model")
+        def call():
+            return client.chat.completions.create(
+                model=deepseek_model_id,
+                messages=[{"role": "user", "content": "hi"}],
+            )
+
+        outcome = call()
+
+        assert outcome.tribute is not None
+        assert outcome.tribute > Decimal(0)
+        assert outcome.input_tokens is not None and outcome.input_tokens > 0
+        assert outcome.output_tokens is not None and outcome.output_tokens > 0
+        assert outcome.cached_tokens is not None and outcome.cached_tokens >= 0
+        assert (
+            outcome.cache_write_5m_tokens is not None
+            and outcome.cache_write_5m_tokens >= 0
+        )
+        assert (
+            outcome.cache_write_1h_tokens is not None
+            and outcome.cache_write_1h_tokens >= 0
+        )
+
+
+class TestMistral:
+    def test_mistral_call_extracts_usage(
+        self, mistral_api_key, mistral_model_id, cfg
+    ) -> None:
+        pytest.importorskip("mistralai")
+        from mistralai.client import Mistral
+
+        client = Mistral(api_key=mistral_api_key)
+
+        @augur(model="mistral-test-model")
+        def call():
+            return client.chat.complete(
+                model=mistral_model_id,
+                messages=[{"role": "user", "content": "hi"}],
             )
 
         outcome = call()

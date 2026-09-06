@@ -62,6 +62,26 @@ def google_model_id() -> str:
     return os.environ.get("GOOGLE_TEST_MODEL", "gemini-3.5-flash")
 
 
+@pytest.fixture()
+def deepseek_api_key() -> str:
+    return _require_env("DEEPSEEK_API_KEY")
+
+
+@pytest.fixture()
+def deepseek_model_id() -> str:
+    return os.environ.get("DEEPSEEK_TEST_MODEL", "deepseek-v4-flash")
+
+
+@pytest.fixture()
+def mistral_api_key() -> str:
+    return _require_env("MISTRAL_API_KEY")
+
+
+@pytest.fixture()
+def mistral_model_id() -> str:
+    return os.environ.get("MISTRAL_TEST_MODEL", "ministral-3b-latest")
+
+
 def _require_env(var_name: str) -> str:
     value = os.environ.get(var_name)
     if not value or not value.strip():
