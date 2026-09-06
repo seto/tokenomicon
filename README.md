@@ -4,8 +4,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License: Apache-2.0"></a>
   <a href="https://pypi.org/project/tokenomicon/"><img src="https://img.shields.io/pypi/v/tokenomicon.svg?maxAge=86400&color=blue" alt="Version"></a>
   <a href="https://pypi.org/project/tokenomicon"><img src="https://img.shields.io/pypi/pyversions/tokenomicon.svg" alt="Supported Versions"></a>
-  <a href="https://github.com/seto/tokenomicon/actions"><img src="https://img.shields.io/github/actions/workflow/status/seto/tokenomicon/utests.yml?label=utests&logo=github" alt="Unit Tests"></a>
-  <a href="https://github.com/seto/tokenomicon/actions"><img src="https://img.shields.io/github/actions/workflow/status/seto/tokenomicon/itests.yml?label=itests&logo=github" alt="Integration Tests"></a>
+  <a href="https://github.com/seto/tokenomicon/actions"><img src="https://img.shields.io/github/actions/workflow/status/seto/tokenomicon/utests.yml?label=tests&logo=github" alt="Unit Tests"></a>
   <a href="https://github.com/psf/black"><img src="https://img.shields.io/badge/code_style-black-000000.svg" alt="Code Style: Black"></a>
   <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Linting: Ruff"></a>
 </p>
@@ -241,9 +240,10 @@ pip install -r requirements-dev.txt
 invoke utest
 ```
 
-Integration tests make real, minimal calls against actual provider SDKs, to confirm
-extractors recognize genuine response shapes rather than hand-built fixtures. They
-require API keys and are opt-in only:
+Integration tests make real, minimal calls against actual provider SDKs, purely as
+optional extra confidence. The unit test suite already covers correctness with 100%
+coverage, deterministically. They require API keys, are opt-in only, and are never run
+in CI: adapt them to whichever providers you actually have accounts with.
 
 ```bash
 pip install -r tests/integration/requirements.txt

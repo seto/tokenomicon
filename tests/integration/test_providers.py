@@ -1,20 +1,31 @@
 """Real, minimal, "ping" style calls against actual provider SDKs.
 
-Confirms tokenomicon's extractors recognize genuine response shapes,
-not just hand-built SimpleNamespace fixtures. Uses the cheapest
-available model per provider and a one-token prompt to keep any real
-spend negligible.
+These are not correctness tests: the unit test suite already covers
+extraction and pricing logic at 100% coverage, deterministically, without
+network calls or provider credentials. This file exists purely for anyone
+who wants the extra peace of mind of seeing a genuine provider response
+recognized end-to-end, not as a gate on correctness.
+
+Accordingly, these tests are opt-in and never run in CI (see the dedicated
+workflow_dispatch-only workflow). They require real, funded accounts for
+whichever providers you want to check, and are expected to be adapted to
+your own setup: comment out what you don't use, add credentials only for
+the providers you actually have accounts with, skip the rest. There's no
+obligation to keep every provider green here.
+
+Uses the cheapest available model per provider and a one-token prompt to
+keep any real spend negligible.
 
 Prompt caching (both reads and Anthropic's cache-write tiers) is
 exercised only at the unit-test level (deterministic SimpleNamespace
 fixtures). Forcing a real cache hit or cache write here would require
 padding requests to each provider's minimum cacheable size and is
 best-effort on the provider side (not guaranteed per-request), which
-would make this pre-release suite flaky without adding real coverage
-of tokenomicon's own logic. The registered test plans below
-deliberately omit cache_write_5m_per_million / cache_write_1h_per_million:
-since these "ping" calls never trigger a real cache write, the write
-token counts stay at 0 and tribute() never needs those rates.
+would add flakiness without adding real coverage of tokenomicon's own
+logic. The registered test plans below deliberately omit
+cache_write_5m_per_million / cache_write_1h_per_million: since these
+"ping" calls never trigger a real cache write, the write token counts
+stay at 0 and tribute() never needs those rates.
 """
 
 from decimal import Decimal

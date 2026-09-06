@@ -2,7 +2,7 @@
 
 These tests are opt-in: they require actual API credentials
 and make real (paid) network calls. They never run in the
-default CI job; only in a dedicated pre-release workflow.
+default CI job.
 """
 
 import os
