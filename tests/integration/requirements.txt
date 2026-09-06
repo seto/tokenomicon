@@ -1,4 +1,5 @@
 anthropic~=0.117
 google-genai~=2.12
+mistralai~=2.9
 openai~=2.46
 python-dotenv~=1.2
