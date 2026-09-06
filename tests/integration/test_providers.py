@@ -32,8 +32,9 @@ def cfg(monkeypatch) -> Config:
     test_config.register(
         PricingPlan(
             model="openai-test-model",
-            input_per_million=Decimal("0.75"),
-            output_per_million=Decimal("4.50"),
+            input_per_million=Decimal("0.20"),
+            output_per_million=Decimal("1.20"),
+            cached_input_per_million=Decimal("0.02"),
         )
     )
     test_config.register(

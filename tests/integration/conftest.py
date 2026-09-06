@@ -24,7 +24,7 @@ def openai_api_key() -> str:
 
 @pytest.fixture()
 def openai_model_id() -> str:
-    return os.environ.get("OPENAI_TEST_MODEL", "gpt-5.4-mini")
+    return os.environ.get("OPENAI_TEST_MODEL", "gpt-5.6-luna")
 
 
 @pytest.fixture()
