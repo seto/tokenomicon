@@ -1,3 +1,5 @@
+import asyncio
+import inspect
 from decimal import Decimal
 from types import SimpleNamespace
 
@@ -363,3 +365,148 @@ class TestAugurCacheWriteTokens:
 
         with pytest.raises(CachePricingNotConfiguredError, match="claude-sonnet-5"):
             call_llm()
+
+
+class TestAugurAsyncSupport:
+    def test_returns_call_result_for_async_function(self, cfg: Config) -> None:
+        @augur(model="claude-sonnet-5")
+        async def call_llm() -> SimpleNamespace:
+            return SimpleNamespace(
+                usage=SimpleNamespace(input_tokens=1_000_000, output_tokens=1_000_000)
+            )
+
+        outcome = asyncio.run(call_llm())
+
+        assert isinstance(outcome, CallResult)
+        assert outcome.tribute == Decimal("18.00")
+        assert outcome.input_tokens == 1_000_000
+        assert outcome.output_tokens == 1_000_000
+
+    def test_async_function_returns_coroutine_not_call_result_directly(
+        self, cfg: Config
+    ) -> None:
+        # Regression guard for the original bug: calling the decorated
+        # function must return an awaitable, never a CallResult synchronously.
+        @augur(model="claude-sonnet-5")
+        async def call_llm() -> SimpleNamespace:
+            return SimpleNamespace(
+                usage=SimpleNamespace(input_tokens=100, output_tokens=50)
+            )
+
+        pending = call_llm()
+
+        assert asyncio.iscoroutine(pending)
+        asyncio.run(pending)  # avoid a "never awaited" warning leaking into other tests
+
+    def test_original_async_response_is_preserved_untouched(self, cfg: Config) -> None:
+        original = SimpleNamespace(
+            usage=SimpleNamespace(input_tokens=100, output_tokens=50),
+            choices=["hello"],
+        )
+
+        @augur(model="claude-sonnet-5")
+        async def call_llm() -> SimpleNamespace:
+            return original
+
+        outcome = asyncio.run(call_llm())
+
+        assert outcome.result is original
+        assert outcome.result.choices == ["hello"]
+
+    def test_passes_through_args_and_kwargs_for_async(self, cfg: Config) -> None:
+        @augur(model="claude-sonnet-5")
+        async def call_llm(prompt: str, *, temperature: float = 0.0) -> SimpleNamespace:
+            assert prompt == "hello"
+            assert temperature == 0.7
+            return SimpleNamespace(
+                usage=SimpleNamespace(input_tokens=10, output_tokens=5)
+            )
+
+        outcome = asyncio.run(call_llm("hello", temperature=0.7))
+        assert outcome.tribute is not None
+
+    def test_manual_tokens_fallback_stays_sync_for_async_function(
+        self, cfg: Config
+    ) -> None:
+        # manual_tokens itself is never awaited: it receives the already-
+        # resolved response, same contract regardless of func's sync/async-ness.
+        @augur(
+            model="claude-sonnet-5",
+            manual_tokens=lambda r: (r["prompt_len"], r["gen_len"]),
+        )
+        async def call_local() -> dict:
+            return {"prompt_len": 200, "gen_len": 100}
+
+        outcome = asyncio.run(call_local())
+
+        assert outcome.input_tokens == 200
+        assert outcome.output_tokens == 100
+
+    def test_warns_and_returns_none_tribute_for_unrecognized_async_response(
+        self, cfg: Config
+    ) -> None:
+        @augur(model="claude-sonnet-5")
+        async def call_unknown() -> dict:
+            return {"unexpected": "shape"}
+
+        with pytest.warns(TokenExtractionWarning, match="claude-sonnet-5"):
+            outcome = asyncio.run(call_unknown())
+
+        assert outcome.tribute is None
+        assert outcome.result == {"unexpected": "shape"}
+
+    def test_raises_when_model_not_registered_for_async_function(
+        self, cfg: Config
+    ) -> None:
+        @augur(model="nonexistent-model")
+        async def call_llm() -> SimpleNamespace:
+            return SimpleNamespace(
+                usage=SimpleNamespace(input_tokens=100, output_tokens=50)
+            )
+
+        with pytest.raises(ModelNotConfiguredError):
+            asyncio.run(call_llm())
+
+    def test_wraps_preserves_async_function_identity(self) -> None:
+        # functools.wraps must still propagate __name__/__doc__ on the async path.
+        @augur(model="claude-sonnet-5")
+        async def my_async_call() -> None:
+            """My docstring."""
+
+        assert my_async_call.__name__ == "my_async_call"
+        assert my_async_call.__doc__ == "My docstring."
+
+    def test_decorated_async_function_is_still_a_coroutine_function(self) -> None:
+        # Sanity check that the decorator doesn't accidentally strip the
+        # async-ness that callers (and e.g. asyncio.iscoroutinefunction
+        # checks elsewhere) rely on.
+        @augur(model="claude-sonnet-5")
+        async def my_async_call() -> None:
+            pass
+
+        assert inspect.iscoroutinefunction(my_async_call)
+
+
+class TestAugurSyncStillWorks:
+    def test_sync_function_returns_call_result_directly_not_coroutine(
+        self, cfg: Config
+    ) -> None:
+        # Regression guard for the fix itself: adding async support must not
+        # accidentally turn the sync path into a coroutine-returning one.
+        @augur(model="claude-sonnet-5")
+        def call_llm() -> SimpleNamespace:
+            return SimpleNamespace(
+                usage=SimpleNamespace(input_tokens=100, output_tokens=50)
+            )
+
+        outcome = call_llm()
+
+        assert not asyncio.iscoroutine(outcome)
+        assert isinstance(outcome, CallResult)
+
+    def test_decorated_sync_function_is_not_a_coroutine_function(self) -> None:
+        @augur(model="claude-sonnet-5")
+        def call_llm() -> None:
+            pass
+
+        assert not inspect.iscoroutinefunction(call_llm)
