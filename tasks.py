@@ -17,6 +17,18 @@ def format(ctx, targets="src tests"):
 
 
 @task()
+def lint(ctx, targets="src tests"):
+    print(f"Checking {targets} with ruff...")
+    ctx.run(f"ruff check {targets}")
+
+
+@task()
+def typecheck(ctx, targets="src tests"):
+    print(f"Type checking {targets} with mypy...")
+    ctx.run(f"mypy {targets}")
+
+
+@task()
 def utest(ctx, extras="--cov=tokenomicon --cov-report=term-missing --color=yes"):
     ctx.run(f"pytest tests/unit {extras}")
 
@@ -29,7 +41,7 @@ def itest(ctx, extras="--color=yes"):
 @task
 def clean(ctx):
     print("Cleaning...")
-    ctx.run("rm -rf dist/ build/ .pytest_cache .ruff_cache")
+    ctx.run("rm -rf dist/ build/ .pytest_cache .ruff_cache .mypy_cache")
     ctx.run('find . -name "*.egg-info" -type d -exec rm -r {} +')
     ctx.run('find . -name "__pycache__" -type d -exec rm -r {} +')
     print("Done!")
