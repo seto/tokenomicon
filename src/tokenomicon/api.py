@@ -29,7 +29,7 @@ from typing import Any, ParamSpec, Protocol, overload
 
 from .config import config
 from .exceptions import TokenExtractionWarning
-from .extractors import extract_usage
+from .extractors import TokenUsage, extract_usage
 
 P = ParamSpec("P")
 
@@ -86,7 +86,7 @@ def augur(
     @overload
     def decorator(func: Callable[P, Any]) -> Callable[P, CallResult]: ...
 
-    def decorator(func):
+    def decorator(func: Callable[P, Any]) -> Callable[P, Any]:
         if inspect.iscoroutinefunction(func):
 
             @wraps(func)
@@ -124,7 +124,7 @@ def _build_call_result(
 
     if usage is None and manual_tokens is not None:
         input_tokens, output_tokens = manual_tokens(result)
-        usage = (input_tokens, output_tokens)
+        usage = TokenUsage(input_tokens, output_tokens)
     elif usage is not None:
         cached_tokens = usage.cached_tokens
         cache_write_5m_tokens = usage.cache_write_5m_tokens

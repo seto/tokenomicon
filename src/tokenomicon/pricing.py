@@ -139,6 +139,8 @@ class PricingPlan:
                 f"but no cache_write_1h_per_million rate is configured."
             )
 
+        cache_write_5m_rate = self.cache_write_5m_per_million
+        cache_write_1h_rate = self.cache_write_1h_per_million
         cached_rate = (
             self.cached_input_per_million
             if self.cached_input_per_million is not None
@@ -155,14 +157,16 @@ class PricingPlan:
 
         write_5m_cost = Decimal(0)
         if cache_write_5m_tokens > 0:
+            assert cache_write_5m_rate is not None
             write_5m_cost = (
-                Decimal(cache_write_5m_tokens) * self.cache_write_5m_per_million
+                Decimal(cache_write_5m_tokens) * cache_write_5m_rate
             ) / Decimal(1_000_000)
 
         write_1h_cost = Decimal(0)
         if cache_write_1h_tokens > 0:
+            assert cache_write_1h_rate is not None
             write_1h_cost = (
-                Decimal(cache_write_1h_tokens) * self.cache_write_1h_per_million
+                Decimal(cache_write_1h_tokens) * cache_write_1h_rate
             ) / Decimal(1_000_000)
 
         return input_cost + cached_cost + output_cost + write_5m_cost + write_1h_cost

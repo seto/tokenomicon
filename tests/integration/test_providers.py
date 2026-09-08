@@ -257,7 +257,7 @@ class TestMistral:
         def call():
             return client.chat.complete(
                 model=mistral_model_id,
-                messages=[{"role": "user", "content": "hi"}],
+                messages=[{"role": "user", "content": "hi"}],  # type: ignore[arg-type]
             )
 
         outcome = call()

@@ -71,6 +71,7 @@ class TestOpenAIExtraction:
 
         usage = extract_usage(response)
 
+        assert usage is not None
         assert usage.cache_write_5m_tokens == 0
         assert usage.cache_write_1h_tokens == 0
 
@@ -200,6 +201,7 @@ class TestAnthropicExtraction:
 
         usage = extract_usage(response)
 
+        assert usage is not None
         assert usage.cache_write_5m_tokens == 148
         assert usage.cache_write_1h_tokens == 100
 
@@ -213,6 +215,7 @@ class TestAnthropicExtraction:
 
         usage = extract_usage(response)
 
+        assert usage is not None
         assert usage.cache_write_5m_tokens == 0
         assert usage.cache_write_1h_tokens == 0
 
@@ -228,6 +231,7 @@ class TestAnthropicExtraction:
 
         usage = extract_usage(response)
 
+        assert usage is not None
         assert usage.cache_write_5m_tokens == 0
         assert usage.cache_write_1h_tokens == 0
 
@@ -301,6 +305,7 @@ class TestGoogleExtraction:
 
         usage = extract_usage(response)
 
+        assert usage is not None
         assert usage.cache_write_5m_tokens == 0
         assert usage.cache_write_1h_tokens == 0
 
@@ -352,6 +357,7 @@ class TestDeepSeekExtraction:
 
         usage = extract_usage(response)
 
+        assert usage is not None
         assert usage.cached_tokens == 100
 
 
