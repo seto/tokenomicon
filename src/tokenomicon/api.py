@@ -21,17 +21,18 @@ caller's access to that response untouched.
 
 import inspect
 import warnings
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
 from decimal import Decimal
 from functools import wraps
-from typing import Any, ParamSpec, Protocol, overload
+from typing import Any, ParamSpec, Protocol, TypeVar, overload
 
 from .config import config
 from .exceptions import TokenExtractionWarning
 from .extractors import TokenUsage, extract_usage
 
 P = ParamSpec("P")
+R = TypeVar("R")
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,12 +58,12 @@ class _Augur(Protocol):
     """
 
     @overload
-    def __call__(
-        self, func: Callable[P, Awaitable[Any]]
-    ) -> Callable[P, Awaitable[CallResult]]: ...
+    def __call__(  # type: ignore[overload-overlap]
+        self, func: Callable[P, Coroutine[Any, Any, R]]
+    ) -> Callable[P, Coroutine[Any, Any, CallResult]]: ...
 
     @overload
-    def __call__(self, func: Callable[P, Any]) -> Callable[P, CallResult]: ...
+    def __call__(self, func: Callable[P, R]) -> Callable[P, CallResult]: ...
 
 
 def augur(
@@ -79,12 +80,12 @@ def augur(
     """
 
     @overload
-    def decorator(
-        func: Callable[P, Awaitable[Any]],
-    ) -> Callable[P, Awaitable[CallResult]]: ...
+    def decorator(  # type: ignore[overload-overlap]
+        func: Callable[P, Coroutine[Any, Any, R]],
+    ) -> Callable[P, Coroutine[Any, Any, CallResult]]: ...
 
     @overload
-    def decorator(func: Callable[P, Any]) -> Callable[P, CallResult]: ...
+    def decorator(func: Callable[P, R]) -> Callable[P, CallResult]: ...
 
     def decorator(func: Callable[P, Any]) -> Callable[P, Any]:
         if inspect.iscoroutinefunction(func):
