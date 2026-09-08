@@ -48,7 +48,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -e ".[dev]"
+        run: pip install -e ".[dev,integration]"
 
       - name: Run Mypy
         run: mypy src tests
