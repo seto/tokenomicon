@@ -140,6 +140,35 @@ class TestConfigLoadToml:
         with pytest.raises(ConfigError, match="claude-sonnet-5"):
             cfg.load_toml(toml_file)
 
+    def test_load_toml_invalid_file_does_not_partially_update_registry(
+        self, tmp_path
+    ) -> None:
+        existing = PricingPlan(
+            model="claude-sonnet-5",
+            input_per_million=Decimal("3.00"),
+            output_per_million=Decimal("15.00"),
+        )
+        toml_file = tmp_path / "pricing.toml"
+        toml_file.write_text(
+            """
+            [claude-sonnet-5]
+            input_per_million = "4.00"
+            output_per_million = "20.00"
+
+            [gpt-5-mini]
+            input_per_million = "not-a-number"
+            output_per_million = "2.00"
+            """
+        )  # fmt: skip
+
+        cfg = Config()
+        cfg.register(existing)
+
+        with pytest.raises(ConfigError, match="gpt-5-mini"):
+            cfg.load_toml(toml_file)
+
+        assert cfg.get("claude-sonnet-5").input_per_million == Decimal("3.00")
+
     def test_load_toml_missing_field_raises_config_error(self, tmp_path) -> None:
         toml_file = tmp_path / "pricing.toml"
         toml_file.write_text(
