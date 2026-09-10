@@ -124,6 +124,7 @@ class PricingPlan:
                 f"Model '{self.model}' has cache_write_5m_tokens={cache_write_5m_tokens} "
                 f"but no cache_write_5m_per_million rate is configured."
             )
+
         if cache_write_1h_tokens > 0 and self.cache_write_1h_per_million is None:
             raise CachePricingNotConfiguredError(
                 f"Model '{self.model}' has cache_write_1h_tokens={cache_write_1h_tokens} "
