@@ -1,5 +1,16 @@
 # Changelog
 
+## Version 0.5.1
+
+### Fixed
+
+- Fixed `augur`'s overloaded type hints so sync and async decorated functions are
+  inferred correctly by static type checkers.
+- Made TOML reloads atomic, preserving the active registry when validation fails.
+- Normalized malformed TOML and invalid model entries to `ConfigError`.
+- Rejected non-finite pricing rates such as `NaN` and `Infinity` with
+  `InvalidPricingError`.
+
 ## Version 0.5.0
 
 ### Async Support

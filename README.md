@@ -93,6 +93,10 @@ currency = "EUR"
 An unregistered model raises `ModelNotConfiguredError`: Tokenomicon never falls back to
 a bundled "market price."
 
+Loading is atomic: the active registry is replaced only after the complete TOML document
+has been parsed and every model entry validated. Malformed TOML or invalid model entries
+raise `ConfigError` without changing the previously loaded configuration.
+
 > [!NOTE] `load_toml()` performs synchronous file I/O and TOML parsing. In an async
 > application, call it once at startup (before the event loop is driving request
 > handling), not on every request. If you need to reload pricing at runtime from inside
@@ -236,7 +240,7 @@ All exceptions inherit from `TokenomiconError`:
 | -------------------------------- | -------------------------------------------------------------------------------------------- |
 | `ModelNotConfiguredError`        | The requested model isn't registered in `Config`.                                            |
 | `InvalidCurrencyError`           | `currency` isn't a valid ISO 4217 code.                                                      |
-| `InvalidPricingError`            | A rate is negative or otherwise invalid.                                                     |
+| `InvalidPricingError`            | A rate is negative, non-finite (`NaN`/`Infinity`), or otherwise invalid.                     |
 | `NegativeTokenCountError`        | A token count passed to `.tribute()` is negative.                                            |
 | `CachePricingNotConfiguredError` | Cache-write tokens are present but the corresponding rate isn't configured.                  |
 | `ConfigError`                    | TOML parsing fails, a field is missing, or an env var referenced via `expand_env` isn't set. |
