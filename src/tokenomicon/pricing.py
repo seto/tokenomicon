@@ -62,35 +62,26 @@ class PricingPlan:
             raise InvalidCurrencyError(
                 f"'{self.currency}' is not a valid ISO 4217 currency code"
             )
-        if self.input_per_million < 0 or self.output_per_million < 0:
-            raise InvalidPricingError(
-                f"Rates cannot be negative: "
-                f"input={self.input_per_million}, output={self.output_per_million}"
-            )
-        if (
-            self.cached_input_per_million is not None
-            and self.cached_input_per_million < 0
-        ):
-            raise InvalidPricingError(
-                f"Rates cannot be negative: "
-                f"cached_input={self.cached_input_per_million}"
-            )
-        if (
-            self.cache_write_5m_per_million is not None
-            and self.cache_write_5m_per_million < 0
-        ):
-            raise InvalidPricingError(
-                f"Rates cannot be negative: "
-                f"cache_write_5m={self.cache_write_5m_per_million}"
-            )
-        if (
-            self.cache_write_1h_per_million is not None
-            and self.cache_write_1h_per_million < 0
-        ):
-            raise InvalidPricingError(
-                f"Rates cannot be negative: "
-                f"cache_write_1h={self.cache_write_1h_per_million}"
-            )
+
+        rates = [
+            ("input", self.input_per_million),
+            ("output", self.output_per_million),
+            ("cached_input", self.cached_input_per_million),
+            ("cache_write_5m", self.cache_write_5m_per_million),
+            ("cache_write_1h", self.cache_write_1h_per_million),
+        ]
+
+        for name, value in rates:
+            if value is None:
+                continue
+
+            if not value.is_finite():
+                raise InvalidPricingError(
+                    f"Rates must be finite numbers: {name}={value}"
+                )
+
+            if value < 0:
+                raise InvalidPricingError(f"Rates cannot be negative: {name}={value}")
 
     def tribute(
         self,

@@ -64,6 +64,15 @@ class TestPricingPlanValidation:
                 output_per_million=Decimal("-2.00"),
             )
 
+    @pytest.mark.parametrize("value", [Decimal("NaN"), Decimal("Infinity")])
+    def test_rejects_non_finite_rates(self, value: Decimal) -> None:
+        with pytest.raises(InvalidPricingError):
+            PricingPlan(
+                model="gpt-5-mini",
+                input_per_million=value,
+                output_per_million=Decimal("2.00"),
+            )
+
     def test_allows_zero_rate(self) -> None:
         # A free tier (e.g. local models) is a legitimate zero-tribute plan.
         plan = PricingPlan(
