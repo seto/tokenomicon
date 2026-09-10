@@ -182,6 +182,34 @@ class TestConfigLoadToml:
         with pytest.raises(ConfigError, match="claude-sonnet-5"):
             cfg.load_toml(toml_file)
 
+    def test_load_toml_non_table_model_entry_raises_config_error(
+        self, tmp_path
+    ) -> None:
+        toml_file = tmp_path / "pricing.toml"
+        toml_file.write_text(
+            """
+            gpt-5-mini = [1, 2, 3]
+            """
+        )  # fmt: skip
+
+        cfg = Config()
+        with pytest.raises(ConfigError, match="table"):
+            cfg.load_toml(toml_file)
+
+    def test_load_toml_invalid_syntax_raises_config_error(self, tmp_path) -> None:
+        toml_file = tmp_path / "pricing.toml"
+        toml_file.write_text(
+            """
+            [claude-sonnet-5
+            input_per_million = "3.00"
+            output_per_million = "15.00"
+            """
+        )  # fmt: skip
+
+        cfg = Config()
+        with pytest.raises(ConfigError, match="Invalid TOML"):
+            cfg.load_toml(toml_file)
+
     def test_load_toml_with_cached_input_per_million(self, tmp_path) -> None:
         toml_file = tmp_path / "pricing.toml"
         toml_file.write_text(

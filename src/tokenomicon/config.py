@@ -56,10 +56,20 @@ class Config:
         if expand_env:
             raw = _expand_env(raw)
 
-        data = tomllib.loads(raw)
-        plans = self._plans.copy()
+        try:
+            data = tomllib.loads(raw)
+        except tomllib.TOMLDecodeError as exc:
+            raise ConfigError(f"Invalid TOML in pricing file: {exc}") from None
+
+        new_plans = self._plans.copy()
 
         for model, rates in data.items():
+            if not isinstance(rates, dict):
+                raise ConfigError(
+                    f"Model '{model}' must be a table with rate fields; "
+                    f"got {type(rates).__name__}."
+                )
+
             try:
                 input_per_million = Decimal(str(rates["input_per_million"]))
                 output_per_million = Decimal(str(rates["output_per_million"]))
@@ -94,7 +104,7 @@ class Config:
                     f"Model '{model}' is missing required field {exc}"
                 ) from None
 
-            plans[model] = PricingPlan(
+            new_plans[model] = PricingPlan(
                 model=model,
                 input_per_million=input_per_million,
                 output_per_million=output_per_million,
@@ -104,7 +114,7 @@ class Config:
                 cache_write_1h_per_million=cache_write_1h_per_million,
             )
 
-        self._plans = plans
+        self._plans = new_plans
 
     async def aload_toml(self, path: str | Path, *, expand_env: bool = False) -> None:
         """Async twin of load_toml(), for use inside an event loop.
