@@ -34,6 +34,8 @@ the caller is expected to supply token counts manually.
 from collections.abc import Callable
 from typing import Any, NamedTuple
 
+from .exceptions import NegativeTokenCountError
+
 
 class TokenUsage(NamedTuple):
     input_tokens: int
@@ -69,7 +71,11 @@ def _extract_openai_compatible(response: Any) -> TokenUsage | None:
     if details is not None:
         cached_tokens = getattr(details, "cached_tokens", None) or 0
 
-    return TokenUsage(input_tokens - cached_tokens, output_tokens, cached_tokens)
+    return TokenUsage(
+        _input_tokens_excluding_cache(input_tokens, cached_tokens, "OpenAI"),
+        output_tokens,
+        cached_tokens,
+    )
 
 
 def _extract_anthropic(response: Any) -> TokenUsage | None:
@@ -116,7 +122,11 @@ def _extract_google(response: Any) -> TokenUsage | None:
 
     cached_tokens = getattr(usage, "cached_content_token_count", None) or 0
 
-    return TokenUsage(input_tokens - cached_tokens, output_tokens, cached_tokens)
+    return TokenUsage(
+        _input_tokens_excluding_cache(input_tokens, cached_tokens, "Google"),
+        output_tokens,
+        cached_tokens,
+    )
 
 
 def _extract_deepseek(response: Any) -> TokenUsage | None:
@@ -137,7 +147,11 @@ def _extract_deepseek(response: Any) -> TokenUsage | None:
     if cache_hit_tokens is None:
         return None
 
-    return TokenUsage(input_tokens - cache_hit_tokens, output_tokens, cache_hit_tokens)
+    return TokenUsage(
+        _input_tokens_excluding_cache(input_tokens, cache_hit_tokens, "DeepSeek"),
+        output_tokens,
+        cache_hit_tokens,
+    )
 
 
 # DeepSeek is tried before OpenAI: both report prompt_tokens/completion_tokens,
@@ -150,3 +164,15 @@ _EXTRACTORS: tuple[Callable[[Any], TokenUsage | None], ...] = (
     _extract_anthropic,
     _extract_google,
 )
+
+
+def _input_tokens_excluding_cache(
+    input_tokens: int, cached_tokens: int, provider: str
+) -> int:
+    if input_tokens < 0 or cached_tokens < 0 or cached_tokens > input_tokens:
+        raise NegativeTokenCountError(
+            f"{provider} reported inconsistent cached token counts: "
+            f"input_tokens={input_tokens}, cached_tokens={cached_tokens}"
+        )
+
+    return input_tokens - cached_tokens
