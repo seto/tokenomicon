@@ -44,6 +44,10 @@ class InvalidPricingError(TokenomiconError, ValueError):
     """Raised when a pricing rate is negative or not numeric."""
 
 
+class InvalidManualTokensError(TokenomiconError, ValueError):
+    """Raised when manual token extraction returns an invalid result."""
+
+
 class NegativeTokenCountError(TokenomiconError, ValueError):
     """Raised when a token count is negative or inconsistent."""
 

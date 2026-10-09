@@ -28,7 +28,7 @@ from functools import wraps
 from typing import Any, ParamSpec, Protocol, TypeVar, overload
 
 from .config import config
-from .exceptions import TokenExtractionWarning
+from .exceptions import InvalidManualTokensError, TokenExtractionWarning
 from .extractors import TokenUsage, extract_usage
 
 P = ParamSpec("P")
@@ -107,6 +107,33 @@ def augur(
     return decorator
 
 
+def _normalize_manual_tokens(
+    result: Any, manual_tokens: Callable[[Any], tuple[int, int]]
+) -> tuple[int, int]:
+    """Validate and normalize manual_tokens callback output."""
+
+    try:
+        raw_tokens = manual_tokens(result)
+    except Exception as exc:
+        raise InvalidManualTokensError(
+            "manual_tokens callback raised an exception"
+        ) from exc
+
+    if not isinstance(raw_tokens, (tuple, list)) or len(raw_tokens) != 2:
+        raise InvalidManualTokensError(
+            "manual_tokens must return a 2-tuple of non-negative ints"
+        )
+
+    input_tokens, output_tokens = raw_tokens
+    if type(input_tokens) is not int or type(output_tokens) is not int:
+        raise InvalidManualTokensError("manual_tokens must return a 2-tuple of ints")
+
+    if input_tokens < 0 or output_tokens < 0:
+        raise InvalidManualTokensError("manual_tokens values must be non-negative ints")
+
+    return input_tokens, output_tokens
+
+
 def _build_call_result(
     result: Any, model: str, manual_tokens: Callable[[Any], tuple[int, int]] | None
 ) -> CallResult:
@@ -124,7 +151,7 @@ def _build_call_result(
     cache_write_1h_tokens = 0
 
     if usage is None and manual_tokens is not None:
-        input_tokens, output_tokens = manual_tokens(result)
+        input_tokens, output_tokens = _normalize_manual_tokens(result, manual_tokens)
         usage = TokenUsage(input_tokens, output_tokens)
     elif usage is not None:
         cached_tokens = usage.cached_tokens

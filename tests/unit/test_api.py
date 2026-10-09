@@ -2,6 +2,7 @@ import asyncio
 import inspect
 from decimal import Decimal
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
@@ -9,8 +10,10 @@ from tokenomicon.api import CallResult, augur
 from tokenomicon.config import Config
 from tokenomicon.exceptions import (
     CachePricingNotConfiguredError,
+    InvalidManualTokensError,
     ModelNotConfiguredError,
     TokenExtractionWarning,
+    TokenomiconError,
 )
 from tokenomicon.pricing import PricingPlan
 
@@ -118,6 +121,75 @@ class TestAugurManualTokensFallback:
 
         assert manual_tokens_called is False
         assert outcome.input_tokens == 100
+
+    def test_manual_tokens_rejects_wrong_tuple_shape(self, cfg: Config) -> None:
+        bad_manual_tokens: Any = lambda _r: (200,)  # noqa: E731
+
+        @augur(model="claude-sonnet-5", manual_tokens=bad_manual_tokens)
+        def call_local() -> dict:
+            return {"prompt_len": 200, "gen_len": 100}
+
+        with pytest.raises(InvalidManualTokensError, match="manual_tokens.*2"):
+            call_local()
+
+    def test_manual_tokens_rejects_non_integer_values(self, cfg: Config) -> None:
+        bad_manual_tokens: Any = lambda _r: ("200", 100)  # noqa: E731
+
+        @augur(model="claude-sonnet-5", manual_tokens=bad_manual_tokens)
+        def call_local() -> dict:
+            return {"prompt_len": 200, "gen_len": 100}
+
+        with pytest.raises(InvalidManualTokensError, match="manual_tokens.*int"):
+            call_local()
+
+    def test_manual_tokens_rejects_negative_values(self, cfg: Config) -> None:
+        @augur(model="claude-sonnet-5", manual_tokens=lambda _r: (-1, 100))
+        def call_local() -> dict:
+            return {"prompt_len": 200, "gen_len": 100}
+
+        with pytest.raises(InvalidManualTokensError, match="non-negative"):
+            call_local()
+
+    def test_manual_tokens_rejects_callback_exceptions(self, cfg: Config) -> None:
+        def boom(_response: object) -> tuple[int, int]:
+            raise RuntimeError("bad manual_tokens")
+
+        @augur(model="claude-sonnet-5", manual_tokens=boom)
+        def call_local() -> dict:
+            return {"prompt_len": 200, "gen_len": 100}
+
+        with pytest.raises(
+            InvalidManualTokensError,
+            match="manual_tokens callback raised an exception",
+        ):
+            call_local()
+
+    def test_manual_tokens_rejects_bool_values(self, cfg: Config) -> None:
+        # bool is a subclass of int: `type(x) is not int` and must keep its rejection.
+        bad_manual_tokens: Any = lambda _r: (True, 100)  # noqa: E731
+
+        @augur(model="claude-sonnet-5", manual_tokens=bad_manual_tokens)
+        def call_local() -> dict:
+            return {}
+
+        with pytest.raises(InvalidManualTokensError, match="ints"):
+            call_local()
+
+    @pytest.mark.parametrize("bad", [(), (1, 2, 3)])
+    def test_manual_tokens_rejects_wrong_cardinality(self, cfg: Config, bad) -> None:
+        bad_manual_tokens: Any = lambda _r: bad  # noqa: E731
+
+        @augur(model="claude-sonnet-5", manual_tokens=bad_manual_tokens)
+        def call_local() -> dict:
+            return {}
+
+        with pytest.raises(InvalidManualTokensError, match="2-tuple"):
+            call_local()
+
+    def test_invalid_manual_tokens_error_is_also_a_value_error(self) -> None:
+        # Backward compatibility
+        assert issubclass(InvalidManualTokensError, ValueError)
+        assert issubclass(InvalidManualTokensError, TokenomiconError)
 
 
 class TestAugurUnrecognizedResponse:
