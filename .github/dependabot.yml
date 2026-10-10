@@ -10,7 +10,9 @@ updates:
         patterns: ["*"]
 
   - package-ecosystem: "pip"
-    directory: "/"
+    directories:
+      - "/"
+      - "/tests/integration"
     schedule:
       interval: "monthly"
     groups:
