@@ -14,13 +14,18 @@
 
 """Automatic token-usage extraction from known LLM provider response shapes.
 
-Provides best-effort parsers for common providers (OpenAI, Anthropic, Google).
+Provides best-effort parsers for common providers (OpenAI, Anthropic, Google,
+DeepSeek). Mistral responses are recognized by the OpenAI-compatible parser, since
+their usage shape is identical.
 
 Where a provider reports prompt-cache reads (OpenAI's cached_tokens, Google's
 cached_content_token_count, Anthropic's cache_read_input_tokens), extractors
 report them as a separate cached_tokens count, normalizing away each
 provider's own accounting (OpenAI and Google count cached tokens as a subset
 of the input total; Anthropic already counts them separately).
+
+Inconsistent counts (negative values, or cached tokens exceeding the input
+total) raise NegativeTokenCountError at extraction time.
 
 Anthropic's cache-write (creation) tokens are also extracted, split by TTL
 tier (cache_write_5m_tokens, cache_write_1h_tokens) from the response's

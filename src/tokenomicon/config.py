@@ -49,7 +49,8 @@ class Config:
 
         If expand_env=True, it replaces patterns like ${VAR_NAME} in the file
         with the corresponding environment variable value before parsing.
-        It is disabled by default: no implicit expansion.
+        It is disabled by default: no implicit expansion. The substitution is
+        plain text, so it must only be used with a trusted environment.
         """
 
         raw = Path(path).read_text()
