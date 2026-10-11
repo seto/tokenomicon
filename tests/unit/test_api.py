@@ -1,6 +1,7 @@
 import asyncio
 import inspect
 from decimal import Decimal
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
@@ -208,6 +209,42 @@ class TestAugurUnrecognizedResponse:
         assert outcome.output_tokens is None
         assert outcome.currency is None
         assert outcome.result == {"unexpected": "shape"}
+
+
+class TestAugurWarningStacklevel:
+    # stacklevel=3 is fragile: it silently breaks if a call layer is added or
+    # removed between warnings.warn() and the application code.
+    def test_warning_points_to_caller_of_sync_function(self, cfg: Config) -> None:
+        @augur(model="claude-sonnet-5")
+        def call_unknown() -> dict:
+            return {"unexpected": "shape"}
+
+        def app_call() -> None:
+            call_unknown()
+
+        expected_lineno = app_call.__code__.co_firstlineno + 1
+        with pytest.warns(TokenExtractionWarning) as record:
+            app_call()
+
+        assert Path(record[0].filename).samefile(__file__)
+        assert record[0].lineno == expected_lineno
+
+    def test_warning_points_to_awaiting_coroutine_for_async_function(
+        self, cfg: Config
+    ) -> None:
+        @augur(model="claude-sonnet-5")
+        async def call_unknown() -> dict:
+            return {"unexpected": "shape"}
+
+        async def app() -> None:
+            await call_unknown()
+
+        expected_lineno = app.__code__.co_firstlineno + 1
+        with pytest.warns(TokenExtractionWarning) as record:
+            asyncio.run(app())
+
+        assert Path(record[0].filename).samefile(__file__)
+        assert record[0].lineno == expected_lineno
 
 
 class TestAugurModelResolution:
