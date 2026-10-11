@@ -1,4 +1,5 @@
 from decimal import Decimal
+from typing import Any
 
 import pytest
 
@@ -269,6 +270,18 @@ class TestPricingPlanCost:
         )
         with pytest.raises(NegativeTokenCountError):
             plan.tribute(100, 100, cached_tokens=-1)
+
+    @pytest.mark.parametrize("value", [["USD"], {"code": "USD"}, 123, None])
+    def test_rejects_non_string_currency(self, value: Any) -> None:
+        # Unhashable values (list, dict) used to escape as a bare TypeError from
+        # the `in ISO_4217_CODES` lookup instead of InvalidCurrencyError.
+        with pytest.raises(InvalidCurrencyError):
+            PricingPlan(
+                model="gpt-5-mini",
+                input_per_million=Decimal("0.25"),
+                output_per_million=Decimal("2.00"),
+                currency=value,
+            )
 
     def test_tribute_with_cache_write_5m_tokens(self) -> None:
         plan = PricingPlan(

@@ -58,7 +58,7 @@ class PricingPlan:
     cache_write_1h_per_million: Decimal | None = None
 
     def __post_init__(self) -> None:
-        if self.currency not in ISO_4217_CODES:
+        if not isinstance(self.currency, str) or self.currency not in ISO_4217_CODES:
             raise InvalidCurrencyError(
                 f"'{self.currency}' is not a valid ISO 4217 currency code"
             )

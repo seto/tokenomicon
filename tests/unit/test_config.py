@@ -4,7 +4,11 @@ from decimal import Decimal
 import pytest
 
 from tokenomicon.config import Config
-from tokenomicon.exceptions import ConfigError, ModelNotConfiguredError
+from tokenomicon.exceptions import (
+    ConfigError,
+    InvalidCurrencyError,
+    ModelNotConfiguredError,
+)
 from tokenomicon.pricing import PricingPlan
 
 
@@ -181,6 +185,38 @@ class TestConfigLoadToml:
         cfg = Config()
         with pytest.raises(ConfigError, match="claude-sonnet-5"):
             cfg.load_toml(toml_file)
+
+    def test_load_toml_non_string_currency_leaves_registry_untouched(
+        self, tmp_path
+    ) -> None:
+        existing = PricingPlan(
+            model="claude-sonnet-5",
+            input_per_million=Decimal("3.00"),
+            output_per_million=Decimal("15.00"),
+        )
+        toml_file = tmp_path / "pricing.toml"
+        toml_file.write_text(
+            """
+            [claude-sonnet-5]
+            input_per_million = "4.00"
+            output_per_million = "20.00"
+
+            [gpt-5-mini]
+            input_per_million = "0.25"
+            output_per_million = "2.00"
+            currency = ["USD"]
+            """
+        )  # fmt: skip
+
+        cfg = Config()
+        cfg.register(existing)
+
+        with pytest.raises(InvalidCurrencyError):
+            cfg.load_toml(toml_file)
+
+        assert cfg.get("claude-sonnet-5") is existing
+        with pytest.raises(ModelNotConfiguredError):
+            cfg.get("gpt-5-mini")
 
     def test_load_toml_non_table_model_entry_raises_config_error(
         self, tmp_path
