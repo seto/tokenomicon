@@ -16,7 +16,9 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -e ".[dev,integration]"
+        run: |
+          pip install -r requirements-dev.txt
+          pip install -r tests/integration/requirements.txt
 
       - name: Run integration tests
         run: pytest tests/integration -v

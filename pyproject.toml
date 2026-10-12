@@ -27,26 +27,6 @@ classifiers = [
 ]
 dependencies = []
 
-[project.optional-dependencies]
-dev = [
-    "black~=26.5",
-    "build~=1.5",
-    "invoke~=3.0",
-    "isort>=8,<10",
-    "mypy~=2.3",
-    "pytest~=9.1",
-    "pytest-cov~=7.1",
-    "ruff~=0.16",
-    "twine>=6.2,<8.0"
-]
-integration = [
-    "anthropic>=0.117,<2.0",
-    "google-genai~=2.12",
-    "mistralai~=2.9",
-    "openai>=2.46,<4.0",
-    "python-dotenv~=1.2",
-]
-
 [project.urls]
 Source = "https://github.com/seto/tokenomicon"
 Changelog = "https://github.com/seto/tokenomicon/blob/master/CHANGES.md"
