@@ -94,8 +94,11 @@ An unregistered model raises `ModelNotConfiguredError`: Tokenomicon never falls 
 a bundled "market price."
 
 Loading is atomic: the active registry is replaced only after the complete TOML document
-has been parsed and every model entry validated. Malformed TOML or invalid model entries
-raise `ConfigError` without changing the previously loaded configuration.
+has been parsed and every model entry validated. Malformed TOML and structurally invalid
+entries (a model that isn't a table, a missing field, a non-numeric rate) raise
+`ConfigError`; invalid values keep their specific exception (`InvalidCurrencyError` for
+the currency, `InvalidPricingError` for negative or non-finite rates). In every case the
+previously loaded configuration is left untouched.
 
 > [!NOTE] `load_toml()` performs synchronous file I/O and TOML parsing. In an async
 > application, call it once at startup (before the event loop is driving request
@@ -123,6 +126,12 @@ output_per_million = "${GPT_5_4_MINI_OUTPUT}"
 ```
 
 A referenced variable that isn't set raises `ConfigError`.
+
+Expansion is a plain text substitution performed _before_ the TOML is parsed, so the
+environment is treated as trusted input: a variable whose value contains TOML syntax
+(quotes, newlines, table headers) is parsed as TOML, not kept as a literal value. Only
+enable `expand_env` when both the file and the environment come from sources you
+control.
 
 ### Prompt caching
 
@@ -232,6 +241,10 @@ successful automatic read. If neither succeeds, Tokenomicon emits a
 `TokenExtractionWarning` and returns a `CallResult` with `tribute=None`, rather than
 guessing.
 
+The callback must return exactly two non-negative integers:
+`(input_tokens, output_tokens)`. Anything else, or an exception raised by the callback
+itself, raises `InvalidManualTokensError`.
+
 ## Error handling
 
 All exceptions inherit from `TokenomiconError`:
@@ -240,8 +253,9 @@ All exceptions inherit from `TokenomiconError`:
 | -------------------------------- | -------------------------------------------------------------------------------------------- |
 | `ModelNotConfiguredError`        | The requested model isn't registered in `Config`.                                            |
 | `InvalidCurrencyError`           | `currency` isn't a valid ISO 4217 code.                                                      |
+| `InvalidManualTokensError`       | The `manual_tokens` callback raises, or returns anything other than two non-negative ints.   |
 | `InvalidPricingError`            | A rate is negative, non-finite (`NaN`/`Infinity`), or otherwise invalid.                     |
-| `NegativeTokenCountError`        | A token count passed to `.tribute()` is negative.                                            |
+| `NegativeTokenCountError`        | A token count passed to `.tribute()` is negative, or provider usage counts are inconsistent. |
 | `CachePricingNotConfiguredError` | Cache-write tokens are present but the corresponding rate isn't configured.                  |
 | `ConfigError`                    | TOML parsing fails, a field is missing, or an env var referenced via `expand_env` isn't set. |
 

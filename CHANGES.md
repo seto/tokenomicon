@@ -1,5 +1,28 @@
 # Changelog
 
+## Version 0.6.0
+
+### Token Validation
+
+- Add `InvalidManualTokensError`, raised when the `manual_tokens` fallback returns
+  anything other than exactly two non-negative integers, or when the callback itself
+  raises. Previously a malformed result either failed with an unrelated error (a bare
+  unpacking `ValueError`, a `TypeError`) or was silently accepted (a `float`) and ended
+  up in `CallResult`. It derives from both `TokenomiconError` and `ValueError`, so
+  existing `except ValueError` handlers keep working.
+- Detect inconsistent cache-read counts (negative, or exceeding the prompt total) for
+  OpenAI-compatible, Google, and DeepSeek responses at extraction time, with an error
+  naming the provider and the offending counts, instead of failing later in `tribute()`.
+
+### Fixed
+
+- A non-string `currency` (for example `currency = ["USD"]` in the TOML file) now raises
+  `InvalidCurrencyError` instead of a bare `TypeError`.
+
+### Python Support
+
+- Add Python 3.15 to the supported and tested versions.
+
 ## Version 0.5.1
 
 ### Fixed
