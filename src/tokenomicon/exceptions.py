@@ -41,11 +41,11 @@ class InvalidCurrencyError(TokenomiconError, ValueError):
 
 
 class InvalidPricingError(TokenomiconError, ValueError):
-    """Raised when a pricing rate is negative or not numeric."""
+    """Raised when a pricing rate is negative or non-finite (NaN, Infinity)."""
 
 
 class InvalidManualTokensError(TokenomiconError, ValueError):
-    """Raised when manual token extraction returns an invalid result."""
+    """Raised when the manual_tokens callback fails or returns an invalid result."""
 
 
 class NegativeTokenCountError(TokenomiconError, ValueError):

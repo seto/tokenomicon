@@ -60,6 +60,25 @@ class TestOpenAIExtraction:
         with pytest.raises(NegativeTokenCountError, match="cached"):
             extract_usage(response)
 
+    @pytest.mark.parametrize(
+        ("prompt_tokens", "cached_tokens"),
+        [(-1, 0), (150, -1)],
+        ids=["negative-input", "negative-cached"],
+    )
+    def test_rejects_negative_token_counts(
+        self, prompt_tokens: int, cached_tokens: int
+    ) -> None:
+        response = SimpleNamespace(
+            usage=SimpleNamespace(
+                prompt_tokens=prompt_tokens,
+                completion_tokens=40,
+                prompt_tokens_details=SimpleNamespace(cached_tokens=cached_tokens),
+            )
+        )
+
+        with pytest.raises(NegativeTokenCountError, match="inconsistent"):
+            extract_usage(response)
+
     def test_defaults_cached_tokens_to_zero_when_cached_tokens_field_missing(
         self,
     ) -> None:
@@ -310,25 +329,6 @@ class TestGoogleExtraction:
         )
 
         with pytest.raises(NegativeTokenCountError, match="cached"):
-            extract_usage(response)
-
-    @pytest.mark.parametrize(
-        ("prompt_tokens", "cached_tokens"),
-        [(-1, 0), (150, -1)],
-        ids=["negative-input", "negative-cached"],
-    )
-    def test_rejects_negative_token_counts(
-        self, prompt_tokens: int, cached_tokens: int
-    ) -> None:
-        response = SimpleNamespace(
-            usage=SimpleNamespace(
-                prompt_tokens=prompt_tokens,
-                completion_tokens=40,
-                prompt_tokens_details=SimpleNamespace(cached_tokens=cached_tokens),
-            )
-        )
-
-        with pytest.raises(NegativeTokenCountError, match="inconsistent"):
             extract_usage(response)
 
     def test_defaults_cached_tokens_to_zero_when_field_missing(self) -> None:

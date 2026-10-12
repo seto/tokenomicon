@@ -24,8 +24,10 @@ report them as a separate cached_tokens count, normalizing away each
 provider's own accounting (OpenAI and Google count cached tokens as a subset
 of the input total; Anthropic already counts them separately).
 
-Inconsistent counts (negative values, or cached tokens exceeding the input
-total) raise NegativeTokenCountError at extraction time.
+Inconsistent cache counts (negative values, or cached tokens exceeding the input
+total) raise NegativeTokenCountError at extraction time for OpenAI-compatible,
+Google and DeepSeek responses. Any other negative count is rejected later, by
+`PricingPlan.tribute()`.
 
 Anthropic's cache-write (creation) tokens are also extracted, split by TTL
 tier (cache_write_5m_tokens, cache_write_1h_tokens) from the response's
