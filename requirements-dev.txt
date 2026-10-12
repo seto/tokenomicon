@@ -2,7 +2,9 @@ black~=26.5
 build~=1.5
 invoke~=3.0
 isort>=8,<10
-mypy~=2.3
+# Temporary pin: mypy 2.4 (Coroutine is now a Protocol) wrongly types sync functions
+# returning SimpleNamespace-like objects as coroutines. Remove cap once fixed upstream.
+mypy>=2.3,<2.4
 pytest~=9.1
 pytest-cov~=7.1
 ruff~=0.16
