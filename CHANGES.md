@@ -1,5 +1,16 @@
 # Changelog
 
+## Version 0.6.1
+
+### Fixed
+
+- `load_toml()` now reads pricing files as UTF-8, as the TOML specification requires,
+  instead of the platform default encoding (which differs on Windows before Python
+  3.15).
+- Registering a plan while `load_toml()` or `aload_toml()` is running (for example from
+  another thread) no longer risks losing it: the registry is now updated under a lock,
+  and a reload merges the loaded plans into the current registry.
+
 ## Version 0.6.0
 
 ### Token Validation
