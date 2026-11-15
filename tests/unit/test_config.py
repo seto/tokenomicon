@@ -1,6 +1,8 @@
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
 from pathlib import Path
+from threading import Event
 
 import pytest
 
@@ -88,6 +90,48 @@ class TestConfigLoadToml:
         cfg.load_toml(toml_file)
 
         assert cfg.get("claude-sonnet-5").input_per_million == Decimal("3.00")
+
+    def test_load_toml_preserves_concurrent_registration(
+        self, tmp_path, monkeypatch
+    ) -> None:
+        toml_file = tmp_path / "pricing.toml"
+        toml_file.write_text(
+            """
+            [claude-sonnet-5]
+            input_per_million = "3.00"
+            output_per_million = "15.00"
+            """
+        )  # fmt: skip
+
+        cfg = Config()
+        registered = PricingPlan(
+            model="registered-during-load",
+            input_per_million=Decimal("1.00"),
+            output_per_million=Decimal("2.00"),
+        )
+        plan_constructed = Event()
+        continue_loading = Event()
+        original_init = PricingPlan.__init__
+
+        def pause_after_plan_construction(self, *args, **kwargs) -> None:
+            original_init(self, *args, **kwargs)
+            plan_constructed.set()
+            if not continue_loading.wait(timeout=5):
+                raise TimeoutError("Timed out waiting to resume TOML loading")
+
+        monkeypatch.setattr(PricingPlan, "__init__", pause_after_plan_construction)
+
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            load = executor.submit(cfg.load_toml, toml_file)
+            try:
+                assert plan_constructed.wait(timeout=5)
+                cfg.register(registered)
+            finally:
+                continue_loading.set()
+            load.result(timeout=5)
+
+        assert cfg.get("claude-sonnet-5").input_per_million == Decimal("3.00")
+        assert cfg.get("registered-during-load") is registered
 
     def test_load_valid_toml(self, tmp_path) -> None:
         toml_file = tmp_path / "pricing.toml"

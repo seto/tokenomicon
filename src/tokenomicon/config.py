@@ -28,6 +28,7 @@ import re
 import tomllib
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
+from threading import Lock
 
 from .exceptions import ConfigError, ModelNotConfiguredError
 from .pricing import PricingPlan
@@ -40,9 +41,11 @@ class Config:
 
     def __init__(self) -> None:
         self._plans: dict[str, PricingPlan] = {}
+        self._lock = Lock()
 
     def register(self, plan: PricingPlan) -> None:
-        self._plans[plan.model] = plan
+        with self._lock:
+            self._plans[plan.model] = plan
 
     def load_toml(self, path: str | Path, *, expand_env: bool = False) -> None:
         """Load (or reload) pricing plans from an external TOML file.
@@ -62,7 +65,7 @@ class Config:
         except tomllib.TOMLDecodeError as exc:
             raise ConfigError(f"Invalid TOML in pricing file: {exc}") from None
 
-        new_plans = self._plans.copy()
+        loaded_plans: dict[str, PricingPlan] = {}
 
         for model, rates in data.items():
             if not isinstance(rates, dict):
@@ -105,7 +108,7 @@ class Config:
                     f"Model '{model}' is missing required field {exc}"
                 ) from None
 
-            new_plans[model] = PricingPlan(
+            loaded_plans[model] = PricingPlan(
                 model=model,
                 input_per_million=input_per_million,
                 output_per_million=output_per_million,
@@ -115,7 +118,10 @@ class Config:
                 cache_write_1h_per_million=cache_write_1h_per_million,
             )
 
-        self._plans = new_plans
+        with self._lock:
+            new_plans = self._plans.copy()
+            new_plans.update(loaded_plans)
+            self._plans = new_plans
 
     async def aload_toml(self, path: str | Path, *, expand_env: bool = False) -> None:
         """Async twin of load_toml(), for use inside an event loop.
@@ -129,14 +135,15 @@ class Config:
         await asyncio.to_thread(self.load_toml, path, expand_env=expand_env)
 
     def get(self, model: str) -> PricingPlan:
-        try:
-            return self._plans[model]
+        with self._lock:
+            try:
+                return self._plans[model]
 
-        except KeyError:
-            raise ModelNotConfiguredError(
-                f"Model '{model}' not configured. "
-                f"Available models: {list(self._plans)}"
-            ) from None
+            except KeyError:
+                raise ModelNotConfiguredError(
+                    f"Model '{model}' not configured. "
+                    f"Available models: {list(self._plans)}"
+                ) from None
 
 
 def _expand_env(raw: str) -> str:
