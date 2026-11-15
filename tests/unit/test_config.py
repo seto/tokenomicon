@@ -77,9 +77,7 @@ class TestConfigLoadToml:
 
         original_read_text = Path.read_text
 
-        def read_text_with_ascii_default(
-            path, encoding=None, errors=None
-        ) -> str:
+        def read_text_with_ascii_default(path, encoding=None, errors=None) -> str:
             if encoding is None:
                 encoding = "ascii"
             return original_read_text(path, encoding=encoding, errors=errors)
