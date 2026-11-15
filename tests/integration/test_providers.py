@@ -244,6 +244,7 @@ class TestDeepSeek:
         )
 
 
+@pytest.mark.skip(reason="Requires a funded Mistral account; adjust as needed")
 class TestMistral:
     def test_mistral_call_extracts_usage(
         self, mistral_api_key, mistral_model_id, cfg
