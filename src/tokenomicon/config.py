@@ -50,6 +50,10 @@ class Config:
     def load_toml(self, path: str | Path, *, expand_env: bool = False) -> None:
         """Load (or reload) pricing plans from an external TOML file.
 
+        The plans in the file are applied together, only after the whole file has
+        been parsed and validated: on error the registry is left untouched.
+        Models already registered and not present in the file are kept.
+
         If expand_env=True, it replaces patterns like ${VAR_NAME} in the file
         with the corresponding environment variable value before parsing.
         It is disabled by default: no implicit expansion. The substitution is

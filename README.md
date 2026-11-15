@@ -93,12 +93,13 @@ currency = "EUR"
 An unregistered model raises `ModelNotConfiguredError`: Tokenomicon never falls back to
 a bundled "market price."
 
-Loading is atomic: the active registry is replaced only after the complete TOML document
-has been parsed and every model entry validated. Malformed TOML and structurally invalid
-entries (a model that isn't a table, a missing field, a non-numeric rate) raise
-`ConfigError`; invalid values keep their specific exception (`InvalidCurrencyError` for
-the currency, `InvalidPricingError` for negative or non-finite rates). In every case the
-previously loaded configuration is left untouched.
+Loading is atomic: the plans from the file are applied together, only after the complete
+TOML document has been parsed and every model entry validated. Malformed TOML and
+structurally invalid entries (a model that isn't a table, a missing field, a non-numeric
+rate) raise `ConfigError`; invalid values keep their specific exception
+(`InvalidCurrencyError` for the currency, `InvalidPricingError` for negative or
+non-finite rates). In every case the previously loaded configuration is left untouched.
+Models already registered and not mentioned in the file are kept.
 
 > [!NOTE] `load_toml()` performs synchronous file I/O and TOML parsing. In an async
 > application, call it once at startup (before the event loop is driving request

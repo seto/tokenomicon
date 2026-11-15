@@ -200,6 +200,28 @@ class TestConfigLoadToml:
         cfg.load_toml(toml_file)
         assert cfg.get("claude-sonnet-5").input_per_million == Decimal("4.00")
 
+    def test_load_toml_keeps_models_absent_from_file(self, tmp_path) -> None:
+        registered = PricingPlan(
+            model="local-llama",
+            input_per_million=Decimal(0),
+            output_per_million=Decimal(0),
+        )
+        toml_file = tmp_path / "pricing.toml"
+        toml_file.write_text(
+            """
+            [claude-sonnet-5]
+            input_per_million = "3.00"
+            output_per_million = "15.00"
+            """
+        )  # fmt: skip
+
+        cfg = Config()
+        cfg.register(registered)
+        cfg.load_toml(toml_file)
+
+        assert cfg.get("local-llama") is registered
+        assert cfg.get("claude-sonnet-5").input_per_million == Decimal("3.00")
+
     def test_load_toml_invalid_numeric_value_raises_config_error(
         self, tmp_path
     ) -> None:
