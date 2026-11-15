@@ -53,7 +53,7 @@ class Config:
         plain text, so it must only be used with a trusted environment.
         """
 
-        raw = Path(path).read_text()
+        raw = Path(path).read_text(encoding="utf-8")
         if expand_env:
             raw = _expand_env(raw)
 

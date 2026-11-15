@@ -1,5 +1,6 @@
 import asyncio
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
@@ -61,6 +62,33 @@ class TestConfigRegistration:
 
 
 class TestConfigLoadToml:
+    def test_load_toml_reads_utf8(self, tmp_path, monkeypatch) -> None:
+        toml_file = tmp_path / "pricing.toml"
+        toml_file.write_text(
+            """# Prezzi aggiornati per l'Italia: caffè
+            [claude-sonnet-5]
+            input_per_million = "3.00"
+            output_per_million = "15.00"
+            """,
+            encoding="utf-8",
+        )  # fmt: skip
+
+        original_read_text = Path.read_text
+
+        def read_text_with_ascii_default(
+            path, encoding=None, errors=None
+        ) -> str:
+            if encoding is None:
+                encoding = "ascii"
+            return original_read_text(path, encoding=encoding, errors=errors)
+
+        monkeypatch.setattr(Path, "read_text", read_text_with_ascii_default)
+
+        cfg = Config()
+        cfg.load_toml(toml_file)
+
+        assert cfg.get("claude-sonnet-5").input_per_million == Decimal("3.00")
+
     def test_load_valid_toml(self, tmp_path) -> None:
         toml_file = tmp_path / "pricing.toml"
         toml_file.write_text(
