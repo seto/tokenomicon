@@ -9,7 +9,7 @@ build/
 dist/
 *.egg-info/
 
-# IDEs and OS specifific
+# IDEs and OS specific
 .DS_Store
 .idea/
 .vscode/
